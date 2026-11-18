@@ -1,0 +1,123 @@
+{
+  "owner": {
+    "name": "Alex Moreau",
+    "email": "alex@moreau.photo",
+    "location": "Berlin, Germany",
+    "available_for_travel": "Available for travel worldwide",
+    "copyright_year": "2026",
+    "bio": [
+      "Alex Moreau is a Berlin-based photographer working across documentary, editorial, and fine art photography. His work examines the quiet tensions between light and shadow in urban environments, drawing on a visual language shaped by years spent between European capitals and remote coastlines.",
+      "His photographs have appeared in Vogue Italia, Le Monde Magazine, and several international group exhibitions. He is represented by Gallery Noir, Berlin.",
+      "Moreau approaches photography as a slowcraft — each frame the product of extended periods of observation rather than reactive capture. His series often develop over months or years, tracing the same locations across different seasons and light conditions."
+    ]
+  },
+  "nav_links": [
+    {
+      "label": "Index",
+      "href": "/"
+    },
+    {
+      "label": "Works",
+      "href": "/works"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "social_links": [
+    {
+      "label": "Instagram",
+      "handle": "@alexmoreau",
+      "url": "https://instagram.com"
+    }
+  ],
+  "projects": [
+    {
+      "slug": "urban-geometry",
+      "title": "Urban Geometry",
+      "featured_images": [
+        "architecture.png",
+        "Screenshot 2026-10-01 173649.png",
+        "Screenshot 2026-10-01 174443.png"
+      ]
+    },
+    {
+      "slug": "silver-coast",
+      "title": "Silver Coast",
+      "featured_images": [
+        "Screenshot 2026-10-01 184049.png"
+      ]
+    },
+    {
+      "slug": "nocturne",
+      "title": "Nocturne",
+      "featured_images": [
+        "Screenshot 2026-10-01 180800.png",
+        "Screenshot 2026-10-25 164555.png"
+      ]
+    },
+    {
+      "slug": "pippo-baudo",
+      "title": "Pippo Baudo",
+      "featured_images": [
+        "spaghetti-logo.jpg"
+      ]
+    }
+  ],
+  "resume": [
+    {
+      "section": "exhibition",
+      "title": "Light & Shadow",
+      "organization": "Gallery Noir, Berlin",
+      "period": "2025",
+      "display_order": 1
+    },
+    {
+      "section": "exhibition",
+      "title": "Urban Studies",
+      "organization": "Aperture Foundation, New York",
+      "period": "2024",
+      "display_order": 2
+    },
+    {
+      "section": "exhibition",
+      "title": "Monochrome",
+      "organization": "Le Bal, Paris",
+      "period": "2023",
+      "display_order": 3
+    },
+    {
+      "section": "experience",
+      "title": "Editorial Photographer",
+      "organization": "Vogue Italia",
+      "period": "2022 – Present",
+      "display_order": 1
+    },
+    {
+      "section": "experience",
+      "title": "Documentary Photographer",
+      "organization": "Reuters",
+      "period": "2019 – 2022",
+      "display_order": 2
+    },
+    {
+      "section": "education",
+      "title": "MFA Photography",
+      "organization": "Royal College of Art, London",
+      "period": "2017 – 2019",
+      "display_order": 1
+    },
+    {
+      "section": "education",
+      "title": "BA Visual Arts",
+      "organization": "Universität der Künste, Berlin",
+      "period": "2014 – 2017",
+      "display_order": 2
+    }
+  ]
+}

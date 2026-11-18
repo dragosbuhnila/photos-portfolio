@@ -1,0 +1,15 @@
+import { getSiteContent } from '@/lib/content';
+import ContactContent from '@/components/contact/ContactContent';
+
+export const dynamic = 'force-dynamic';
+
+export default function ContactPage() {
+  const content = getSiteContent();
+
+  return (
+    <ContactContent
+      owner={content.owner}
+      socialLinks={content.social_links}
+    />
+  );
+}
