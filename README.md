@@ -2,7 +2,7 @@
 
 Welcome to your photography portfolio website! This guide explains how to add new photos, organize your projects, update your bio/resume, and view your website locally on your computer.
 
-No coding experience is required—everything is driven by putting images into folders and updating a simple text file.
+No coding experience is required. Everything is driven by putting images into folders and updating a simple text file.
 
 ---
 
