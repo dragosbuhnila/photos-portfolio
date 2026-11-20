@@ -1,9 +1,19 @@
-# Photo Projects
+# Photo Projects Directory (`public/my_projects/`)
 
-Drop image files (`.jpg`, `.jpeg`, `.png`, `.webp`) into each project subfolder.
-Folder names must exactly match the `slug` values in `content.json`.
+This directory contains the physical image files for all portfolio collections.
 
-After adding images, run `npm run seed` to rebuild the database, then restart the dev server.
+You can manage photos in two ways:
+
+1. **Via Content Studio (`/manage/projects`):**
+   - Upload images directly from your browser.
+   - Files are automatically saved into their respective project subfolder.
+   - Toggle which images appear on the landing page horizontal canvas (`★ Featured`).
+   - All additions and removals are instantly recorded in the SQLite database.
+
+2. **Direct Filesystem Management:**
+   - Drop image files (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`, `.gif`) into each project subfolder.
+   - Folder names correspond to the `slug` values of your projects (e.g. `urban-geometry`).
+   - After manually adding or removing images in folders, run `npm run seed` to index them into SQLite.
 
 ## Example structure
 ```

@@ -46,8 +46,8 @@ export default function AboutPage() {
                 {SECTION_LABELS[section] ?? section}
               </h2>
               <ul className="space-y-5">
-                {sectionEntries.map((entry) => (
-                  <li key={entry.id} className="flex justify-between items-start gap-8">
+                {sectionEntries.map((entry, idx) => (
+                  <li key={entry.id ?? idx} className="flex justify-between items-start gap-8">
                     <div>
                       <p className="text-sm text-text-bright">{entry.title}</p>
                       <p className="text-xs text-text-muted mt-0.5">{entry.organization}</p>

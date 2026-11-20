@@ -9,8 +9,12 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "outDir": "./dist-seed"
   },
-  "include": ["db/seed.ts"],
+  "include": ["db/**/*.ts", "src/**/*.ts"],
   "exclude": ["node_modules"]
 }

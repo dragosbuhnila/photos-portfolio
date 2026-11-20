@@ -1,14 +1,14 @@
 # Photography Portfolio — Owner's Guide
 
-Welcome to your photography portfolio website! This guide explains how to add new photos, organize your projects, update your bio/resume, and view your website locally on your computer.
+Welcome to your photography portfolio website! This guide explains how to manage your website: adding new photos, organizing your projects, updating your bio/resume, and viewing your website locally on your computer.
 
-No coding experience is required—everything is driven by putting images into folders and updating a simple text file.
+The application relies directly on a high-performance local SQLite database (`db/portfolio.db`) as its single source of truth. You can manage everything directly from the built-in **Content Studio (`/manage`)** in your browser, or add photo folders manually into `public/my_projects/`.
 
 ---
 
 ## 🚀 Quick Start: Running Your Website
 
-To preview your website on your computer:
+To preview and manage your website on your computer:
 
 1. Open your terminal (PowerShell, Command Prompt, or Terminal in VS Code).
 2. Make sure you are inside this project folder:
@@ -20,17 +20,44 @@ To preview your website on your computer:
    npm run dev
    ```
 4. Open your browser and go to:
-   👉 **[http://localhost:3000](http://localhost:3000)**
-
-> **Note:** Whenever you run `npm run dev`, the system automatically scans your photo folders, updates your project list, and refreshes the database before launching the site!
+   - 👉 **Public Site:** [http://localhost:3000](http://localhost:3000)
+   - 👉 **Content Studio (Admin):** [http://localhost:3000/manage](http://localhost:3000/manage)
 
 To stop the website at any time, press `Ctrl + C` in your terminal window.
 
 ---
 
-## 📸 Adding New Photos & Projects
+## 🎛️ Option 1 (Recommended): Managing Everything via Content Studio (`/manage`)
 
-The website automatically detects any photo folders you create.
+Click on **Manage** in the site header or navigate to `http://localhost:3000/manage`. The studio provides four dedicated sections:
+
+### 1. Projects & Photo Studio (`/manage/projects`)
+- **Create New Projects:** Enter a title (e.g. `Nocturne`), and a clean URL slug is generated automatically.
+- **Upload High-Res Imagery:** Drag-and-drop or select files directly in the browser (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`). Images are instantly saved into `public/my_projects/<slug>/` and recorded in SQLite.
+- **Feature on Landing Canvas:** Click **`★ Featured`** on any photo to toggle whether it appears in the horizontal landing page showcase.
+- **Reorder Projects:** Click `▲` and `▼` to change the project priority without typing numbers.
+- **Delete Photos or Projects:** Safe deletion with inline confirmation.
+
+### 2. Resume & Chronology (`/manage/resume`)
+- Tabbed by category: **Work Experience**, **Education**, and **Exhibitions**.
+- **Collision-Free Ordering:** Move items up and down with `▲` and `▼`. The system assigns sequential priority order automatically, eliminating duplicate order index errors.
+- Add, edit, or delete credentials with real-time field validation.
+
+### 3. Artist Profile (`/manage`)
+- Update your photographer name, direct contact email, location, travel availability, and copyright year.
+- **Editorial Bio Paragraphs:** Add, edit, or remove paragraphs dynamically. Each paragraph renders as a distinct block on the `/about` page.
+
+### 4. Social Links (`/manage/social`)
+- Add, edit, remove, and reorder external links (e.g. Instagram, Threads, Behance).
+- Validates URLs and handles automatically.
+
+*All updates made in Content Studio instantly update the SQLite database in real-time (< 1ms), with zero server lag.*
+
+---
+
+## 📁 Option 2 (Manual): Adding Photos & Projects via Filesystem
+
+If you prefer to organize photos directly on your computer:
 
 ### Step 1: Create a Project Folder
 Inside the project, locate the folder:
@@ -47,97 +74,30 @@ public/
 ### Step 2: Add Images
 Drop your image files (`.jpg`, `.jpeg`, `.png`, `.webp`) straight into that folder.
 
-### Step 3: Sync & Update
-Run this command in your terminal:
+### Step 3: Sync Images to SQLite
+Run this command in your terminal to index the new files into your database:
 ```bash
 npm run seed
 ```
 
 **What happens automatically:**
-- The system discovers your new folder.
+- The system discovers your new folder and image files.
 - It formats the name into a clean title (e.g., `summer-in-rome` becomes `Summer In Rome`).
-- It automatically adds the project into your `content.json` file.
 - All photos in that folder will immediately show up on your **Works** page (`/works`)!
+- You can then visit `/manage/projects` to mark specific photos as **Featured** for the landing page or adjust titles.
 
 ---
 
-## 🎨 Customizing Projects & Homepage Slideshow (`content.json`)
+## 🗄️ Database Architecture (`db/portfolio.db`)
 
-Open the `content.json` file in the root folder using any text editor (like VS Code or Notepad).
+The website uses a local SQLite database powered by `better-sqlite3` in Write-Ahead Logging (`WAL`) mode:
+- **`site_settings`**: Stores photographer bio, email, location, travel availability, copyright year, and nav links.
+- **`social_links`**: Stores social media profiles and ordering.
+- **`projects`**: Stores project titles, slugs, and display order.
+- **`photos`**: Stores all photo metadata, file paths, `is_featured` flags, and display order.
+- **`resume_entries`**: Stores career chronology (experience, education, exhibitions).
 
-Here is what a project entry looks like:
-
-```json
-{
-  "slug": "summer-in-rome",
-  "title": "Summer In Rome",
-  "featured_images": [
-    "sunset-colosseum.jpg"
-  ]
-}
-```
-
-### Changing the Project Title
-Edit the `"title"` field to whatever you want displayed on the site.
-
-### Choosing Homepage / Landing Page Photos ("Featured Images")
-The homepage displays a full-screen, horizontal scrolling canvas. Only photos listed in `"featured_images"` will appear on the homepage.
-
-- Copy the exact file name of the photo (including extension like `.jpg` or `.png`).
-- Add it inside the quotes within `featured_images`:
-  ```json
-  "featured_images": [
-    "photo-1.jpg",
-    "photo-2.jpg"
-  ]
-  ```
-- If you don't want any photos from this project on the homepage, leave it empty:
-  ```json
-  "featured_images": []
-  ```
-
----
-
-## 📄 Updating Your About / Resume Page
-
-Inside `content.json`, scroll down to the `"resume"` section. You will see entries grouped into three categories:
-- `exhibition` (Exhibitions & shows)
-- `experience` (Work history & editorial clients)
-- `education` (Degrees & training)
-
-### Adding an Entry
-You can copy and paste an existing entry and change the details:
-
-```json
-{
-  "section": "exhibition",
-  "title": "Solo Exhibition: Shadows & Form",
-  "organization": "Modern Art Gallery, Milan",
-  "period": "2026",
-  "display_order": 1
-}
-```
-
-- **`section`**: Must be either `"exhibition"`, `"experience"`, or `"education"`.
-- **`title`**: The name of the exhibition, your role, or degree.
-- **`organization`**: The gallery, client, magazine, or school.
-- **`period`**: The year or year range (e.g. `"2025"`, `"2022 – Present"`).
-- **`display_order`**: A number determining which item appears first (`1` is at the top).
-
----
-
-## 🔄 Applying Your Changes
-
-Whenever you:
-- Add or remove images,
-- Add or rename project folders, or
-- Edit `content.json`
-
-Just run:
-```bash
-npm run seed
-```
-Then refresh your browser page to see the changes immediately!
+> **Note on `content.json`:** The root `content.json` file served as the original seed source. All data has been migrated into `db/portfolio.db`. If you ever need to perform a clean import from `content.json`, run `npm run migrate`.
 
 ---
 
@@ -146,5 +106,7 @@ Then refresh your browser page to see the changes immediately!
 | Goal | Command |
 | :--- | :--- |
 | **Start previewing website** | `npm run dev` |
-| **Refresh database after changing photos or content.json** | `npm run seed` |
+| **Sync new folders/photos added to filesystem** | `npm run seed` |
+| **Re-run initial migration from content.json** | `npm run migrate` |
+| **Build for production** | `npm run build` |
 | **Stop website server** | Press `Ctrl + C` in terminal |

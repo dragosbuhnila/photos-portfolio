@@ -1,14 +1,14 @@
 # Project Specification: Photography Portfolio
 
 ## 1. Project Overview
-A modern, minimalist photography portfolio featuring a lateral-scrolling landing canvas, a complete works index, and an editorial about page. The application relies on a file-based CMS approach: data is managed manually in a JSON file and local folders, which seeds a local SQLite database for fast querying by the frontend.
+A modern, minimalist photography portfolio featuring a lateral-scrolling landing canvas, a complete works index, an editorial about page, and a built-in Content Studio (`/manage`). The application relies directly on a local SQLite database (`db/portfolio.db`) as its single source of truth for all projects, photos, metadata, bio, and resume entries.
 
 ## 2. Tech Stack & Architecture
 - **Language:** TypeScript (Strict mode)
-- **Framework:** Next.js
-- **Database:** SQLite (using `better-sqlite3`)
+- **Framework:** Next.js (App Router)
+- **Database:** SQLite (using `better-sqlite3` in WAL mode)
 - **Styling:** Tailwind CSS
-- **Data Pipeline:** A `seed.ts` script that parses a root `content.json` file and the `public/my_projects/` directory to wipe and populate the SQLite database on build/startup.
+- **Data Layer:** Unified read/write service (`src/lib/db.ts`) executing direct, transactional SQLite queries, with one-time migration and folder sync scripts (`db/migrate.ts`, `db/seed.ts`).
 
 ## 3. Visual & Aesthetic Rules (Darkroom / Cinema Style)
 - **Backgrounds:** Deep matte charcoal (`#121212` or Tailwind `neutral-950`). Strictly NO pure black (`#000000`).
@@ -18,14 +18,38 @@ A modern, minimalist photography portfolio featuring a lateral-scrolling landing
 
 ## 4. Content Management & Database Schema
 
-### File Structure (Source of Truth)
-- `content.json`: Contains JSON arrays for `projects` (metadata) and `resume` entries.
-- `public/my_projects/`: Contains subfolders named exactly after project slugs (e.g., `public/my_projects/tokyo-nights/`), containing the raw image files.
+### Source of Truth
+- `db/portfolio.db`: SQLite database storing all portfolio entities in WAL mode.
+- `public/my_projects/`: Contains subfolders named after project slugs (e.g., `public/my_projects/tokyo-nights/`), containing the raw image files.
 
 ### Database Schema (SQLite)
+**Table: `site_settings`**
+- `id`: INTEGER PRIMARY KEY CHECK (id = 1)
+- `name`: TEXT NOT NULL
+- `email`: TEXT NOT NULL
+- `location`: TEXT NOT NULL
+- `available_for_travel`: TEXT
+- `copyright_year`: TEXT
+- `bio`: TEXT (JSON array string)
+- `nav_links`: TEXT (JSON array string)
+
+**Table: `social_links`**
+- `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+- `label`: TEXT NOT NULL
+- `handle`: TEXT
+- `url`: TEXT NOT NULL
+- `display_order`: INTEGER NOT NULL
+
+**Table: `projects`**
+- `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+- `slug`: TEXT UNIQUE NOT NULL
+- `title`: TEXT NOT NULL
+- `display_order`: INTEGER NOT NULL
+- `created_at`: DATETIME DEFAULT CURRENT_TIMESTAMP
+
 **Table: `photos`**
 - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
-- `project_slug`: TEXT NOT NULL (Maps to folder name in `/my_projects/`)
+- `project_slug`: TEXT NOT NULL (Maps to `projects.slug`)
 - `file_name`: TEXT NOT NULL
 - `title`: TEXT
 - `image_path`: TEXT NOT NULL (e.g., `/my_projects/tokyo-nights/01.jpg`)
@@ -42,8 +66,8 @@ A modern, minimalist photography portfolio featuring a lateral-scrolling landing
 
 ## 5. Application Routes
 
-### Global Layout (`Layout.tsx`)
-- **Header:** Sticky top bar containing the photographer's name (left) and navigation links (`Index`, `Works`, `About`, `Contact`) on the right.
+### Global Layout (`layout.tsx`)
+- **Header:** Sticky top bar containing the photographer's name (left) and navigation links (`Index`, `Works`, `About`, `Contact`, `Manage`) on the right.
 - **Footer:** Direct email link, social links, and copyright notice ("© 2026 [Name]. All rights reserved.").
 
 ### Route 1: Landing Page (`/`)
@@ -61,43 +85,45 @@ A modern, minimalist photography portfolio featuring a lateral-scrolling landing
 ### Route 4: Contact Page (`/contact`)
 - **Feature:** Minimalist static page displaying click-to-copy email address, location, and social links. No forms.
 
+### Route 5: Content Studio (`/manage`)
+- **Feature:** In-browser admin panel to update artist profile, projects, photos, featured images, and resume entries with direct SQLite persistence.
+
 ## 6. Directory Structure Target
 ```text
-├── content.json          <-- Manual data entry
 ├── db/
 │   ├── schema.sql
-│   ├── seed.ts           <-- Reads content.json & folders to build SQLite DB
-│   └── portfolio.db
+│   ├── migrate.ts        <-- One-time / sync migration script
+│   ├── seed.ts           <-- Filesystem folder sync tool
+│   └── portfolio.db      <-- SQLite Database (Single Source of Truth)
 ├── public/
-│   └── my_projects/      <-- Manual photo folders
+│   └── my_projects/      <-- Project photo folders
 │       ├── project-one/
 │       └── project-two/
 ├── src/
 │   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Header.tsx
-│   │   │   ├── Footer.tsx
-│   │   │   └── PageWrapper.tsx
+│   │   ├── admin/
 │   │   ├── canvas/
-│   │   │   └── HorizontalCanvas.tsx
+│   │   ├── contact/
+│   │   ├── layout/
 │   │   └── works/
-│   │       ├── PhotoGrid.tsx
-│   │       └── Lightbox.tsx
 │   ├── app/
-│   │   ├── index.tsx
-│   │   ├── works.tsx
-│   │   ├── about.tsx
-│   │   ├── contact.tsx
+│   │   ├── page.tsx
+│   │   ├── works/page.tsx
+│   │   ├── about/page.tsx
+│   │   ├── contact/page.tsx
+│   │   ├── manage/
 │   │   └── api/
-│   │       ├── photos.ts
-│   │       ├── about.ts
-│   │       └── contact.ts
+│   ├── lib/
+│   │   ├── db.ts         <-- Direct SQLite query & mutation layer
+│   │   ├── admin.ts      <-- Filesystem helpers
+│   │   └── validation.ts <-- Isomorphic validation
 │   └── types/
 │       └── portfolio.ts
 └── package.json
+```
 
 ## 7. System Rules & Agent Directives
 1. **Source of Truth:** This file (`AGENTS.md`) is the absolute source of truth. Do not deviate from its tech stack, database schema, or design system without explicit user permission.
 2. **TypeScript:** Write clean, strict TypeScript. Do not use `any`.
 3. **Aesthetic Enforcement:** This project uses a "Darkroom / Cinema" aesthetic. Never use bright backgrounds, heavy borders, rounded corners (always 0px), or drop shadows. Rely entirely on Tailwind utility classes.
-4. **Database Guardrails:** The database is seeded exclusively via `seed.ts` from `content.json` and the `public/my_projects/` directory. Do not build web-based upload forms or mutations.
+4. **Database Guardrails:** The database is SQLite (`db/portfolio.db`) in WAL mode. Mutations execute in-process via `src/lib/db.ts`.

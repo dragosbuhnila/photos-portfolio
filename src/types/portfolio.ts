@@ -10,7 +10,7 @@ export interface Photo {
 }
 
 export interface ResumeEntry {
-  id: number;
+  id?: number;
   section: string;
   title: string;
   organization: string;

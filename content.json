@@ -27,6 +27,10 @@
     {
       "label": "Contact",
       "href": "/contact"
+    },
+    {
+      "label": "Manage",
+      "href": "/manage"
     }
   ],
   "social_links": [
@@ -37,15 +41,6 @@
     }
   ],
   "projects": [
-    {
-      "slug": "urban-geometry",
-      "title": "Urban Geometry",
-      "featured_images": [
-        "architecture.png",
-        "Screenshot 2026-10-01 173649.png",
-        "Screenshot 2026-10-01 174443.png"
-      ]
-    },
     {
       "slug": "silver-coast",
       "title": "Silver Coast",
@@ -62,10 +57,26 @@
       ]
     },
     {
+      "slug": "urban-geometry",
+      "title": "Urban Geometry",
+      "featured_images": [
+        "architecture.png",
+        "Screenshot 2026-10-01 173649.png",
+        "Screenshot 2026-10-01 174443.png"
+      ]
+    },
+    {
       "slug": "pippo-baudo",
       "title": "Pippo Baudo",
       "featured_images": [
         "spaghetti-logo.jpg"
+      ]
+    },
+    {
+      "slug": "macarena",
+      "title": "macarena",
+      "featured_images": [
+        "koreankeyboardlayout.png"
       ]
     }
   ],

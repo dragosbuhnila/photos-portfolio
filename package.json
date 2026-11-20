@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "ts-node --project tsconfig.seed.json db/seed.ts && next dev",
-    "build": "ts-node --project tsconfig.seed.json db/seed.ts && next build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
+    "migrate": "ts-node --project tsconfig.seed.json db/migrate.ts",
     "seed": "ts-node --project tsconfig.seed.json db/seed.ts",
     "lint": "next lint"
   },

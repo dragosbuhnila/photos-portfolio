@@ -14,6 +14,7 @@ const DEFAULT_NAV: NavLink[] = [
   { label: 'Works', href: '/works' },
   { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
+  { label: 'Manage', href: '/manage' },
 ];
 
 export default function Header({
