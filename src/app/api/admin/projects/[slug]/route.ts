@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   requireAuth,
+  AuthError,
   getProjectImageFiles,
   deleteProjectDir,
 } from '@/lib/admin';
@@ -17,7 +18,7 @@ interface RouteParams {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    requireAuth();
+    await requireAuth();
     const { slug } = params;
     const body = await request.json();
 
@@ -76,6 +77,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : 'Failed to update project';
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -83,7 +87,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
-    requireAuth();
+    await requireAuth();
     const { slug } = params;
 
     const projects = getProjects();
@@ -100,6 +104,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true, message: `Project ${slug} deleted` });
   } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : 'Failed to delete project';
     return NextResponse.json({ error: message }, { status: 500 });
   }

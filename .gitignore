@@ -2,3 +2,5 @@
 node_modules
 dist-seed
 db/portfolio.db
+.env*.local
+.env

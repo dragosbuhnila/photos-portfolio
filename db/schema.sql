@@ -46,6 +46,13 @@ CREATE TABLE IF NOT EXISTS resume_entries (
   display_order INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS admin_auth (
+  id            INTEGER PRIMARY KEY CHECK (id = 1),
+  salt          TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_photos_project_slug ON photos(project_slug);
 CREATE INDEX IF NOT EXISTS idx_photos_featured ON photos(is_featured);
 CREATE INDEX IF NOT EXISTS idx_photos_order ON photos(project_slug, display_order);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/admin';
+import { requireAuth, AuthError } from '@/lib/admin';
 import { getSiteContent, updateSiteContent } from '@/lib/db';
 import {
   validateOwner,
@@ -13,10 +13,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    requireAuth();
+    await requireAuth();
     const content = getSiteContent();
     return NextResponse.json(content);
   } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : 'Failed to read content';
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -24,7 +27,7 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    requireAuth();
+    await requireAuth();
     const body = await request.json();
 
     const errors: FieldError[] = [];
@@ -120,6 +123,9 @@ export async function PUT(request: NextRequest) {
     const refreshedContent = getSiteContent();
     return NextResponse.json({ success: true, content: refreshedContent });
   } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : 'Failed to update content';
     return NextResponse.json({ error: message }, { status: 500 });
   }

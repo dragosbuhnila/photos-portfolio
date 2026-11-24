@@ -1,16 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { requireAuth, AuthError } from './auth';
+
+export { requireAuth, AuthError };
 
 const PROJECTS_DIR = path.join(process.cwd(), 'public', 'my_projects');
-
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif']);
-
-/**
- * Placeholder for future authentication checks.
- */
-export function requireAuth(): void {
-  // No-op placeholder for future auth
-}
 
 /**
  * Lists image files in a project folder (public/my_projects/{slug}/).

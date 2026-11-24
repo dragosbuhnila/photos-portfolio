@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -201,6 +202,18 @@ function runMigration() {
       });
     }
     console.log(`✓ ${content.resume?.length || 0} resume entries migrated.`);
+
+    // 8. Admin Auth Initial Seed
+    const existingAdmin = db.prepare('SELECT id FROM admin_auth WHERE id = 1').get();
+    if (!existingAdmin) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hash = crypto.scryptSync('password', salt, 64).toString('hex');
+      db.prepare(`
+        INSERT INTO admin_auth (id, salt, password_hash)
+        VALUES (1, ?, ?)
+      `).run(salt, hash);
+      console.log('✓ Admin authentication initialized with default hashed credentials.');
+    }
   });
 
   migrateTx();
@@ -211,6 +224,7 @@ function runMigration() {
   const projectsCount = db.prepare('SELECT COUNT(*) as count FROM projects').get() as { count: number };
   const photosCount = db.prepare('SELECT COUNT(*) as count FROM photos').get() as { count: number };
   const resumeCount = db.prepare('SELECT COUNT(*) as count FROM resume_entries').get() as { count: number };
+  const authCount = db.prepare('SELECT COUNT(*) as count FROM admin_auth').get() as { count: number };
 
   console.log('\n📊 Migration Summary:');
   console.log(`  - site_settings: ${settingsCount.count} row(s)`);
@@ -218,6 +232,7 @@ function runMigration() {
   console.log(`  - projects:      ${projectsCount.count} row(s)`);
   console.log(`  - photos:        ${photosCount.count} row(s)`);
   console.log(`  - resume_entries:${resumeCount.count} row(s)`);
+  console.log(`  - admin_auth:    ${authCount.count} row(s)`);
 
   db.close();
   console.log('✅ Migration completed successfully!');

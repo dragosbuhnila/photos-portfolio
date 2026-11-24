@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, getProjectImageFiles, ensureProjectDir } from '@/lib/admin';
+import { requireAuth, AuthError, getProjectImageFiles, ensureProjectDir } from '@/lib/admin';
 import { getAdminProjects, createProject, getProjects } from '@/lib/db';
 import { validateProject, toSlug } from '@/lib/validation';
 
@@ -7,10 +7,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    requireAuth();
+    await requireAuth();
     const projects = getAdminProjects(getProjectImageFiles);
     return NextResponse.json(projects);
   } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : 'Failed to get projects';
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -18,7 +21,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    requireAuth();
+    await requireAuth();
     const body = await request.json();
 
     const rawSlug = body.slug ? String(body.slug).trim() : toSlug(String(body.title || ''));
@@ -48,6 +51,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
     const message = err instanceof Error ? err.message : 'Failed to create project';
     return NextResponse.json({ error: message }, { status: 500 });
   }
