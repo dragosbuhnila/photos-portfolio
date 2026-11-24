@@ -43,6 +43,7 @@ try {
 
   exitCode = result.status ?? 0;
   if (exitCode === 0) {
+    fs.writeFileSync(path.join(rootDir, 'out', '.nojekyll'), '');
     console.log('✔ [build-static] Static site successfully exported to ./out');
   } else {
     console.error('✖ [build-static] Next.js build failed with exit code:', exitCode);
