@@ -59,7 +59,7 @@ app.get('/api/photos', (req, res) => {
 import { NextResponse } from 'next/server';
 import { getFeaturedPhotos, getAllPhotos } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
+
 
 export function GET(request: Request) {
   const { searchParams } = new URL(request.url);

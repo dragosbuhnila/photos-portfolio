@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:static": "node scripts/build-static.js",
     "start": "next start",
     "migrate": "ts-node --project tsconfig.seed.json db/migrate.ts",
     "seed": "ts-node --project tsconfig.seed.json db/seed.ts",

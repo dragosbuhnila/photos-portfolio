@@ -1,6 +1,8 @@
 .next
+out
 node_modules
 dist-seed
-db/portfolio.db
+db/portfolio.db-wal
+db/portfolio.db-shm
 .env*.local
 .env

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import {
-  requireAuth,
-  AuthError,
   getProjectImageFiles,
   saveProjectImage,
   deleteProjectImage,
@@ -14,7 +12,7 @@ import {
   getProjectFeaturedImagesFromDb,
 } from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
+
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif']);
 
@@ -26,7 +24,6 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    await requireAuth();
     const { slug } = params;
 
     const projects = getProjects();
@@ -102,9 +99,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       featured_images: featuredImages,
     });
   } catch (err: unknown) {
-    if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    }
     const message = err instanceof Error ? err.message : 'Failed to upload images';
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -112,7 +106,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    await requireAuth();
     const { slug } = params;
     const body = await request.json();
     const fileName = path.basename(String(body.fileName || ''));
@@ -146,9 +139,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       featured_images: featuredImages,
     });
   } catch (err: unknown) {
-    if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    }
     const message = err instanceof Error ? err.message : 'Failed to delete image';
     return NextResponse.json({ error: message }, { status: 500 });
   }

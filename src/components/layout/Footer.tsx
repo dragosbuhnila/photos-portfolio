@@ -37,15 +37,7 @@ export default function Footer({ owner, socialLinks }: FooterProps) {
           </a>
         ))}
         <span className="text-xs text-neutral-700">
-          <Link
-            href="/login"
-            className="text-neutral-700 hover:text-neutral-500 transition-colors select-none cursor-default focus:outline-none"
-            aria-label="Studio Access"
-            tabIndex={-1}
-          >
-            ©
-          </Link>{' '}
-          {year} {name}. All rights reserved.
+          © {year} {name}. All rights reserved.
         </span>
       </div>
     </footer>

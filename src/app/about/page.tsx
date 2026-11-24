@@ -3,7 +3,7 @@ import { getSiteContent } from '@/lib/content';
 import PageWrapper from '@/components/layout/PageWrapper';
 import type { ResumeEntry } from '@/types/portfolio';
 
-export const dynamic = 'force-dynamic';
+
 
 function groupBySection(entries: ResumeEntry[]): Record<string, ResumeEntry[]> {
   return entries.reduce<Record<string, ResumeEntry[]>>((acc, entry) => {

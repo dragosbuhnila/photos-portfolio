@@ -60,7 +60,7 @@ In Next.js, the folder structure **is** the router, and every `page.tsx` is an *
 ### `export const dynamic = 'force-dynamic'`
 At the top of several pages and routes, you will see:
 ```ts
-export const dynamic = 'force-dynamic';
+
 ```
 - By default, Next.js tries to statically pre-render (SSG) pages at build time.
 - Because this portfolio uses a local SQLite database that can be re-seeded or modified without rebuilding the entire JavaScript application, `force-dynamic` tells Next.js to execute the server component and query the database **at the time of every incoming request**.

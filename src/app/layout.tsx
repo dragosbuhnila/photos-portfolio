@@ -3,9 +3,6 @@ import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { getSiteContent } from '@/lib/content';
-import { checkServerAuth } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   const content = getSiteContent();
@@ -15,13 +12,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const content = getSiteContent();
-  const isAuthenticated = await checkServerAuth();
 
   return (
     <html lang="en">
@@ -29,7 +25,6 @@ export default async function RootLayout({
         <Header
           ownerName={content.owner.name}
           navLinks={content.nav_links}
-          isAuthenticated={isAuthenticated}
         />
         <main className="flex-1 flex flex-col">{children}</main>
         <Footer owner={content.owner} socialLinks={content.social_links} />

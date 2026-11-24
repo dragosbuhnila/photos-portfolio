@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { NavLink } from '@/types/portfolio';
@@ -8,7 +8,6 @@ import type { NavLink } from '@/types/portfolio';
 interface HeaderProps {
   ownerName?: string;
   navLinks?: NavLink[];
-  isAuthenticated?: boolean;
 }
 
 const DEFAULT_NAV: NavLink[] = [
@@ -22,29 +21,12 @@ const DEFAULT_NAV: NavLink[] = [
 export default function Header({
   ownerName = '---',
   navLinks = DEFAULT_NAV,
-  isAuthenticated = false,
 }: HeaderProps) {
   const pathname = usePathname();
-  const [authed, setAuthed] = useState<boolean>(isAuthenticated);
-
-  useEffect(() => {
-    setAuthed(isAuthenticated);
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    // Keep auth state synchronized on client route changes
-    fetch('/api/auth/me')
-      .then((res) => (res.ok ? res.json() : { authenticated: false }))
-      .then((data) => {
-        if (typeof data.authenticated === 'boolean') {
-          setAuthed(data.authenticated);
-        }
-      })
-      .catch(() => {});
-  }, [pathname]);
+  const isStaticExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true';
 
   const visibleLinks = useMemo(() => {
-    if (!authed) {
+    if (isStaticExport) {
       return navLinks.filter(
         (link) => link.href !== '/manage' && !link.href.startsWith('/manage')
       );
@@ -55,7 +37,7 @@ export default function Header({
       return [...navLinks, { label: 'Manage', href: '/manage' }];
     }
     return navLinks;
-  }, [navLinks, authed]);
+  }, [navLinks, isStaticExport]);
 
   return (
     <header className="sticky top-0 z-50 w-full px-8 py-5 flex items-center justify-between bg-canvas">

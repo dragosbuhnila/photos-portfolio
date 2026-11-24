@@ -3,20 +3,10 @@ import PageWrapper from '@/components/layout/PageWrapper';
 import PhotoGrid from '@/components/works/PhotoGrid';
 import type { ProjectGroup } from '@/types/portfolio';
 
-export const dynamic = 'force-dynamic';
 
-interface WorksPageProps {
-  searchParams?: {
-    highlight?: string;
-    project?: string;
-  };
-}
 
-export default function WorksPage({ searchParams }: WorksPageProps) {
+export default function WorksPage() {
   const photos = getAllPhotos();
-  const initialHighlightId = searchParams?.highlight
-    ? parseInt(searchParams.highlight, 10)
-    : undefined;
 
   // Group by project_slug
   const groupMap = new Map<string, ProjectGroup>();
@@ -44,7 +34,7 @@ export default function WorksPage({ searchParams }: WorksPageProps) {
         </p>
       </div>
 
-      <PhotoGrid groups={groups} initialHighlightId={initialHighlightId} />
+      <PhotoGrid groups={groups} />
     </PageWrapper>
   );
 }

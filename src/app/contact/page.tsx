@@ -1,7 +1,7 @@
 import { getSiteContent } from '@/lib/content';
 import ContactContent from '@/components/contact/ContactContent';
 
-export const dynamic = 'force-dynamic';
+
 
 export default function ContactPage() {
   const content = getSiteContent();
