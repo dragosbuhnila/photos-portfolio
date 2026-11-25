@@ -18,7 +18,13 @@ function moveFolder(source, destination) {
 }
 
 console.log('⚡ [build-static] Preparing files for static export...');
-const movedTargets = [];
+
+// If an earlier process was interrupted, ensure clean starting state
+for (const target of targets) {
+  if (fs.existsSync(target.to) && !fs.existsSync(target.from)) {
+    moveFolder(target.to, target.from);
+  }
+}
 
 let exitCode = 0;
 
@@ -26,7 +32,6 @@ try {
   for (const target of targets) {
     if (fs.existsSync(target.from)) {
       moveFolder(target.from, target.to);
-      movedTargets.push(target);
     }
   }
 
@@ -54,7 +59,7 @@ try {
   exitCode = 1;
 } finally {
   console.log('⚡ [build-static] Restoring local CMS and API routes...');
-  for (const target of movedTargets) {
+  for (const target of targets) {
     if (fs.existsSync(target.to)) {
       moveFolder(target.to, target.from);
     }

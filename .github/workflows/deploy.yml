@@ -46,10 +46,7 @@ jobs:
           NEXT_PUBLIC_STATIC_EXPORT: 'true'
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: |
-          rm -rf src/app/api src/app/manage
-          npm run build
-          # Prevent GitHub Pages from ignoring Next.js _next folder
-          touch ./out/.nojekyll
+          npm run build:static
 
       - name: Check export directory
         run: |
