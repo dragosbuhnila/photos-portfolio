@@ -6,7 +6,7 @@ import {
 import { updateProject, deleteProject, getProjects } from '@/lib/db';
 import { isNonEmpty, FieldError } from '@/lib/validation';
 
-
+export const dynamic = 'force-dynamic';
 
 interface RouteParams {
   params: {

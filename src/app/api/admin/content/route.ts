@@ -8,7 +8,7 @@ import {
 } from '@/lib/validation';
 import type { ResumeEntry, SocialLink, OwnerInfo } from '@/types/portfolio';
 
-
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

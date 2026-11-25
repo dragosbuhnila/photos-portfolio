@@ -12,7 +12,7 @@ import {
   getProjectFeaturedImagesFromDb,
 } from '@/lib/db';
 
-
+export const dynamic = 'force-dynamic';
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif']);
 

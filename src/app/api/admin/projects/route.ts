@@ -3,7 +3,7 @@ import { getProjectImageFiles, ensureProjectDir } from '@/lib/admin';
 import { getAdminProjects, createProject, getProjects } from '@/lib/db';
 import { validateProject, toSlug } from '@/lib/validation';
 
-
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
