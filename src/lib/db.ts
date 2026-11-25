@@ -1,5 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
+import { createZipBuffer, collectDirectoryFiles, ZipEntry } from './zip';
 import type {
   Photo,
   ResumeEntry,
@@ -49,6 +51,60 @@ export function getDb(): Database.Database {
     registerCleanup();
   }
   return _db;
+}
+
+/**
+ * Checkpoints pending Write-Ahead Log (WAL) journal frames into the main SQLite database
+ * file and truncates the WAL file to zero bytes.
+ * This does not close the database connection, keeping all active and subsequent queries alive.
+ */
+export function checkpointDb(): void {
+  const db = getDb();
+  db.pragma('wal_checkpoint(TRUNCATE)');
+}
+
+/**
+ * Ensures the database file has all pending changes synced from WAL/SHM,
+ * and returns the binary Buffer of the updated SQLite database file.
+ */
+export function getDatabaseBackupBuffer(): Buffer {
+  checkpointDb();
+  if (!fs.existsSync(DB_PATH)) {
+    throw new Error(`Database file not found at ${DB_PATH}`);
+  }
+  return fs.readFileSync(DB_PATH);
+}
+
+/**
+ * Creates a complete ZIP backup containing:
+ * 1. The fully checkpointed db/portfolio.db (all WAL/SHM frames merged and truncated)
+ * 2. The entire public/ directory (including all project galleries and photos)
+ * 
+ * Returns the binary ZIP archive Buffer.
+ */
+export function getFullBackupZipBuffer(): Buffer {
+  checkpointDb();
+
+  if (!fs.existsSync(DB_PATH)) {
+    throw new Error(`Database file not found at ${DB_PATH}`);
+  }
+
+  const entries: ZipEntry[] = [];
+
+  // Add the database file at db/portfolio.db
+  entries.push({
+    name: 'db/portfolio.db',
+    data: fs.readFileSync(DB_PATH),
+  });
+
+  // Add all public media (my_projects folders, images, etc.)
+  const publicDir = path.join(process.cwd(), 'public');
+  if (fs.existsSync(publicDir)) {
+    const publicFiles = collectDirectoryFiles(publicDir, 'public');
+    entries.push(...publicFiles);
+  }
+
+  return createZipBuffer(entries);
 }
 
 export interface DbProject {

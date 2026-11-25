@@ -31,6 +31,11 @@ const NAV_ITEMS: NavItem[] = [
     href: '/manage/social',
     description: 'Handles & outbound links',
   },
+  {
+    label: 'Backup',
+    href: '/manage/backup',
+    description: 'Full snapshot (database & photos)',
+  },
 ];
 
 export default function AdminSidebar() {
