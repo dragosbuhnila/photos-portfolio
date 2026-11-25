@@ -8,6 +8,7 @@ const appDir = path.join(rootDir, 'src', 'app');
 const targets = [
   { from: path.join(appDir, 'api'), to: path.join(appDir, '_api') },
   { from: path.join(appDir, 'manage'), to: path.join(appDir, '_manage') },
+  { from: path.join(appDir, 'my_projects'), to: path.join(appDir, '_my_projects') },
 ];
 
 function moveFolder(source, destination) {
