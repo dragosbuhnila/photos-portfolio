@@ -78,6 +78,16 @@
       "featured_images": [
         "koreankeyboardlayout.png"
       ]
+    },
+    {
+      "slug": "asdf",
+      "title": "Asdf",
+      "featured_images": []
+    },
+    {
+      "slug": "new-project",
+      "title": "New Project",
+      "featured_images": []
     }
   ],
   "resume": [

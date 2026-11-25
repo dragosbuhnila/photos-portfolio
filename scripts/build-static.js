@@ -60,5 +60,8 @@ try {
     }
   }
   console.log('✔ [build-static] Local CMS routes restored.');
+  try {
+    require('./clean-db');
+  } catch {}
   process.exit(exitCode);
 }

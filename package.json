@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node scripts/clean-db.js",
+    "db:clean": "node scripts/clean-db.js",
     "build:static": "node scripts/build-static.js",
     "start": "next start",
     "migrate": "ts-node --project tsconfig.seed.json db/migrate.ts",

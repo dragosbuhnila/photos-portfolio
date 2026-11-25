@@ -12,12 +12,41 @@ import type {
 const DB_PATH = path.join(process.cwd(), 'db', 'portfolio.db');
 
 let _db: Database.Database | null = null;
+let _cleanupRegistered = false;
+
+export function closeDb(): void {
+  if (_db && _db.open) {
+    try {
+      _db.pragma('wal_checkpoint(TRUNCATE)');
+      _db.close();
+    } catch {
+      // ignore
+    }
+    _db = null;
+  }
+}
+
+function registerCleanup(): void {
+  if (_cleanupRegistered) return;
+  _cleanupRegistered = true;
+
+  process.on('exit', () => closeDb());
+  process.on('SIGINT', () => {
+    closeDb();
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    closeDb();
+    process.exit(0);
+  });
+}
 
 export function getDb(): Database.Database {
   if (!_db) {
     _db = new Database(DB_PATH);
     _db.pragma('journal_mode = WAL');
     _db.pragma('foreign_keys = ON');
+    registerCleanup();
   }
   return _db;
 }
