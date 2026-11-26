@@ -11,9 +11,21 @@ const targets = [
   { from: path.join(appDir, 'my_projects'), to: path.join(appDir, '_my_projects') },
 ];
 
-function moveFolder(source, destination) {
-  if (fs.existsSync(source)) {
-    fs.renameSync(source, destination);
+function moveFolder(source, destination, retries = 10, delayMs = 300) {
+  if (!fs.existsSync(source)) return;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      fs.renameSync(source, destination);
+      return;
+    } catch (err) {
+      if (attempt === retries) {
+        console.error(`✖ [build-static] Failed to rename ${source} to ${destination}:`, err.message);
+        throw err;
+      }
+      // Brief pause to allow Windows filesystem handles to release
+      const start = Date.now();
+      while (Date.now() - start < delayMs) {}
+    }
   }
 }
 
@@ -35,7 +47,12 @@ try {
     }
   }
 
-  console.log('⚡ [build-static] Running Next.js static build...');
+  const rawBasePath = process.env.BASE_PATH || process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const basePath = rawBasePath && rawBasePath !== '/'
+    ? (rawBasePath.startsWith('/') ? rawBasePath : `/${rawBasePath}`).replace(/\/$/, '')
+    : '';
+
+  console.log(`⚡ [build-static] Running Next.js static build (basePath: "${basePath}")...`);
   const result = spawnSync('npx', ['next', 'build'], {
     stdio: 'inherit',
     cwd: rootDir,
@@ -44,6 +61,8 @@ try {
       ...process.env,
       STATIC_EXPORT: 'true',
       NEXT_PUBLIC_STATIC_EXPORT: 'true',
+      BASE_PATH: basePath,
+      NEXT_PUBLIC_BASE_PATH: basePath,
     },
   });
 

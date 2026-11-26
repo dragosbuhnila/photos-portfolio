@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import type { Photo } from '@/types/portfolio';
+import { getAssetPath } from '@/lib/assets';
 
 export interface LightboxProps {
   photo: Photo;
@@ -72,7 +73,7 @@ export default function Lightbox({
       >
         <div className="relative w-full h-full max-h-[82vh] flex items-center justify-center">
           <Image
-            src={photo.image_path}
+            src={getAssetPath(photo.image_path)}
             alt={photo.title ?? photo.file_name}
             fill
             sizes="95vw"

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import type { Photo } from '@/types/portfolio';
+import { getAssetPath } from '@/lib/assets';
 
 export interface PhotoCardProps {
   photo: Photo;
@@ -44,7 +45,7 @@ export default function PhotoCard({
         }`}
       >
         <Image
-          src={photo.image_path}
+          src={getAssetPath(photo.image_path)}
           alt={photo.title ?? photo.file_name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"

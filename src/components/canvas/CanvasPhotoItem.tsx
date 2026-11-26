@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import type { Photo } from '@/types/portfolio';
+import { getAssetPath } from '@/lib/assets';
 
 export interface CanvasPhotoItemProps {
   photo: Photo;
@@ -55,7 +56,7 @@ export default function CanvasPhotoItem({
         {/* Photo Container with ~70% proportional scale and hover feedback */}
         <div className="relative w-full flex-1 max-h-[46vh] md:max-h-[50vh] flex items-center justify-center">
           <Image
-            src={photo.image_path}
+            src={getAssetPath(photo.image_path)}
             alt={photo.title ?? `Photo from ${photo.project_slug}`}
             fill
             sizes="(max-width: 768px) 85vw, (max-width: 1200px) 60vw, 800px"

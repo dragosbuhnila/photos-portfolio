@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { createZipBuffer, collectDirectoryFiles, ZipEntry } from './zip';
+import { getAssetPath } from './assets';
 import type {
   Photo,
   ResumeEntry,
@@ -136,6 +137,7 @@ export function getFeaturedPhotos(): Photo[] {
   return rows.map((r) => ({
     ...r,
     is_featured: Boolean(r.is_featured),
+    image_path: getAssetPath(r.image_path),
   }));
 }
 
@@ -155,6 +157,7 @@ export function getAllPhotos(): Photo[] {
   return rows.map((r) => ({
     ...r,
     is_featured: Boolean(r.is_featured),
+    image_path: getAssetPath(r.image_path),
   }));
 }
 
@@ -174,6 +177,7 @@ export function getPhotosByProject(slug: string): Photo[] {
   return rows.map((r) => ({
     ...r,
     is_featured: Boolean(r.is_featured),
+    image_path: getAssetPath(r.image_path),
   }));
 }
 
