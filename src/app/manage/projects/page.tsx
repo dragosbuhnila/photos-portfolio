@@ -5,6 +5,7 @@ import AdminField from '@/components/admin/AdminField';
 import ReorderList from '@/components/admin/ReorderList';
 import AdminToast, { ToastState } from '@/components/admin/AdminToast';
 import { toSlug, isValidSlug, isNonEmpty } from '@/lib/validation';
+import type { Photo } from '@/types/portfolio';
 
 interface ProjectData {
   slug: string;
@@ -17,6 +18,8 @@ export default function ProjectsManagementPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [projects, setProjects] = useState<ProjectData[]>([]);
+  const [featuredPhotos, setFeaturedPhotos] = useState<Photo[]>([]);
+  const [showFeaturedSequence, setShowFeaturedSequence] = useState(true);
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
 
   // New project creation state
@@ -35,13 +38,30 @@ export default function ProjectsManagementPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeUploadSlug, setActiveUploadSlug] = useState<string | null>(null);
 
+  const loadFeaturedPhotos = async () => {
+    const res = await fetch('/api/admin/featured');
+    if (!res.ok) throw new Error('Failed to load featured images');
+    const data: Photo[] = await res.json();
+    setFeaturedPhotos(data);
+  };
+
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/admin/projects');
-      if (!res.ok) throw new Error('Failed to load projects');
-      const data: ProjectData[] = await res.json();
+      const [projectsRes, featuredRes] = await Promise.all([
+        fetch('/api/admin/projects'),
+        fetch('/api/admin/featured'),
+      ]);
+      if (!projectsRes.ok) throw new Error('Failed to load projects');
+      if (!featuredRes.ok) throw new Error('Failed to load featured images');
+
+      const [data, featuredData]: [ProjectData[], Photo[]] = await Promise.all([
+        projectsRes.json(),
+        featuredRes.json(),
+      ]);
+
       setProjects(data);
+      setFeaturedPhotos(featuredData);
 
       const titleMap: Record<string, string> = {};
       data.forEach((p) => {
@@ -151,6 +171,32 @@ export default function ProjectsManagementPage() {
     }
   };
 
+  const handleReorderFeatured = async (newOrder: Photo[]) => {
+    setFeaturedPhotos(newOrder);
+    try {
+      const res = await fetch('/api/admin/featured', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoIds: newOrder.map((p) => p.id) }),
+      });
+      if (!res.ok) throw new Error('Failed to persist featured image order');
+      const data = await res.json();
+      if (Array.isArray(data.photos)) {
+        setFeaturedPhotos(data.photos);
+      }
+      setToast({
+        message: 'Landing canvas sequence updated',
+        type: 'success',
+      });
+    } catch (err) {
+      setToast({
+        message: err instanceof Error ? err.message : 'Failed to save featured image order',
+        type: 'error',
+      });
+      await loadFeaturedPhotos().catch(() => {});
+    }
+  };
+
   const handleSaveTitle = async (slug: string) => {
     const updatedTitle = (editingTitles[slug] || '').trim();
     if (!isNonEmpty(updatedTitle)) {
@@ -168,6 +214,9 @@ export default function ProjectsManagementPage() {
       setToast({ message: 'Title updated successfully', type: 'success' });
       setProjects((prev) =>
         prev.map((p) => (p.slug === slug ? { ...p, title: updatedTitle } : p))
+      );
+      setFeaturedPhotos((prev) =>
+        prev.map((p) => (p.project_slug === slug ? { ...p, title: updatedTitle } : p))
       );
     } catch (err) {
       setToast({
@@ -215,6 +264,7 @@ export default function ProjectsManagementPage() {
         body: JSON.stringify({ featured_images: newFeatured }),
       });
       if (!res.ok) throw new Error('Failed to update featured images');
+      await loadFeaturedPhotos();
       setToast({
         message: isCurrentlyFeatured
           ? `Removed "${fileName}" from landing canvas`
@@ -271,6 +321,7 @@ export default function ProjectsManagementPage() {
             : p
         )
       );
+      await loadFeaturedPhotos();
     } catch (err) {
       setToast({
         message: err instanceof Error ? err.message : 'Error uploading images',
@@ -306,6 +357,7 @@ export default function ProjectsManagementPage() {
             : p
         )
       );
+      await loadFeaturedPhotos();
     } catch (err) {
       setToast({
         message: err instanceof Error ? err.message : 'Error deleting image',
@@ -383,6 +435,98 @@ export default function ProjectsManagementPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* ── Landing Canvas Sequence (Featured Images) ─────── */}
+      <div className="mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-neutral-800 mb-4">
+          <button
+            type="button"
+            onClick={() => setShowFeaturedSequence((prev) => !prev)}
+            className="flex items-center gap-3 text-left group focus:outline-none"
+          >
+            <h2 className="text-xs tracking-[0.2em] uppercase text-neutral-400 group-hover:text-text-bright transition-colors font-mono">
+              Landing Canvas Sequence ({featuredPhotos.length})
+            </h2>
+            <span className="text-[11px] text-neutral-500 font-mono">
+              {showFeaturedSequence ? '▴' : '▾'}
+            </span>
+          </button>
+          <span className="text-[11px] text-neutral-500">
+            Use ▲ / ▼ on left to reorder featured frames on landing (first 10 shown)
+          </span>
+        </div>
+
+        {showFeaturedSequence && (
+          featuredPhotos.length === 0 ? (
+            <div className="py-8 text-center text-xs tracking-wider uppercase text-neutral-600 border border-dashed border-neutral-800">
+              No featured images selected. Toggle ★ Feature inside any project gallery below.
+            </div>
+          ) : (
+            <ReorderList<Photo>
+              items={featuredPhotos}
+              onReorder={handleReorderFeatured}
+              keyExtractor={(item) => String(item.id)}
+              itemClassName="!p-3 !items-center"
+              renderItem={(photo, index) => {
+                const isOverLimit = index >= 10;
+                const displayTitle =
+                  photo.title ||
+                  photo.project_slug
+                    .split('-')
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(' ');
+
+                return (
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-16 h-12 bg-neutral-950 border border-neutral-800 overflow-hidden shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photo.image_path}
+                          alt={photo.file_name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-text-bright font-medium truncate">
+                            {displayTitle}
+                          </span>
+                          <span className="text-[11px] text-neutral-600 font-mono">
+                            /{photo.project_slug}
+                          </span>
+                          {isOverLimit && (
+                            <span className="text-[10px] tracking-wider uppercase font-mono text-neutral-500 border border-neutral-800 px-1.5 py-0.5">
+                              Hidden (&gt;10)
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className="text-[11px] text-neutral-400 font-mono truncate mt-0.5"
+                          title={photo.file_name}
+                        >
+                          {photo.file_name}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFeatured(photo.project_slug, photo.file_name)}
+                      className="text-[11px] tracking-wider uppercase text-neutral-500 hover:text-amber-400 border border-neutral-800 hover:border-neutral-700 px-2.5 py-1.5 transition-colors shrink-0"
+                      title="Remove from landing canvas"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                );
+              }}
+            />
+          )
+        )}
       </div>
 
       {/* ── Projects List & Manager ───────────────────────── */}

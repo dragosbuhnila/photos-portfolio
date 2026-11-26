@@ -28,13 +28,14 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 
 CREATE TABLE IF NOT EXISTS photos (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_slug  TEXT    NOT NULL,
-  file_name     TEXT    NOT NULL,
-  title         TEXT,
-  image_path    TEXT    NOT NULL,
-  is_featured   BOOLEAN NOT NULL DEFAULT 0,
-  display_order INTEGER NOT NULL DEFAULT 0
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_slug   TEXT    NOT NULL,
+  file_name      TEXT    NOT NULL,
+  title          TEXT,
+  image_path     TEXT    NOT NULL,
+  is_featured    BOOLEAN NOT NULL DEFAULT 0,
+  display_order  INTEGER NOT NULL DEFAULT 0,
+  featured_order INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS resume_entries (
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS admin_auth (
 
 CREATE INDEX IF NOT EXISTS idx_photos_project_slug ON photos(project_slug);
 CREATE INDEX IF NOT EXISTS idx_photos_featured ON photos(is_featured);
+CREATE INDEX IF NOT EXISTS idx_photos_featured_order ON photos(is_featured, featured_order);
 CREATE INDEX IF NOT EXISTS idx_photos_order ON photos(project_slug, display_order);
 CREATE INDEX IF NOT EXISTS idx_projects_order ON projects(display_order);
 CREATE INDEX IF NOT EXISTS idx_resume_order ON resume_entries(section, display_order);

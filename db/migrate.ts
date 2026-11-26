@@ -119,15 +119,17 @@ function runMigration() {
     existingPhotos.forEach((p) => photoKeyMap.set(`${p.project_slug}::${p.file_name}`, p.id));
 
     const insertPhoto = db.prepare(`
-      INSERT INTO photos (project_slug, file_name, title, image_path, is_featured, display_order)
-      VALUES (@project_slug, @file_name, @title, @image_path, @is_featured, @display_order)
+      INSERT INTO photos (project_slug, file_name, title, image_path, is_featured, display_order, featured_order)
+      VALUES (@project_slug, @file_name, @title, @image_path, @is_featured, @display_order, @featured_order)
     `);
 
     const updatePhoto = db.prepare(`
       UPDATE photos
-      SET title = @title, is_featured = @is_featured, display_order = @display_order
+      SET title = @title, is_featured = @is_featured, display_order = @display_order, featured_order = @featured_order
       WHERE id = @id
     `);
+
+    let nextFeaturedOrder = 1;
 
     for (const project of projectsList) {
       const projectDir = path.join(PROJECTS_DIR, project.slug);
@@ -141,6 +143,7 @@ function runMigration() {
 
         files.forEach((fileName, index) => {
           const isFeatured = featuredSet.has(fileName) ? 1 : 0;
+          const featuredOrder = isFeatured ? nextFeaturedOrder++ : 0;
           let order = index + 1;
           if (project.photos_order && typeof project.photos_order[fileName] === 'number') {
             order = project.photos_order[fileName];
@@ -161,6 +164,7 @@ function runMigration() {
               title: project.title,
               is_featured: isFeatured,
               display_order: order,
+              featured_order: featuredOrder,
             });
           } else {
             insertPhoto.run({
@@ -170,6 +174,7 @@ function runMigration() {
               image_path: `/my_projects/${project.slug}/${fileName}`,
               is_featured: isFeatured,
               display_order: order,
+              featured_order: featuredOrder,
             });
           }
         });

@@ -16,6 +16,46 @@ const DB_PATH = path.join(process.cwd(), 'db', 'portfolio.db');
 
 let _db: Database.Database | null = null;
 let _cleanupRegistered = false;
+let _schemaEnsured = false;
+
+function ensureFeaturedOrderColumn(db: Database.Database): void {
+  if (_schemaEnsured) return;
+  const columns = db.prepare('PRAGMA table_info(photos)').all() as { name: string }[];
+  if (columns.length === 0) {
+    _schemaEnsured = true;
+    return;
+  }
+
+  const hasFeaturedOrder = columns.some((c) => c.name === 'featured_order');
+  if (!hasFeaturedOrder) {
+    db.exec(`
+      ALTER TABLE photos ADD COLUMN featured_order INTEGER NOT NULL DEFAULT 0;
+      CREATE INDEX IF NOT EXISTS idx_photos_featured_order ON photos(is_featured, featured_order);
+    `);
+
+    // Backfill existing featured photos sequentially to preserve current landing order
+    const existingFeatured = db
+      .prepare(`
+        SELECT p.id
+        FROM photos p
+        LEFT JOIN projects pr ON pr.slug = p.project_slug
+        WHERE p.is_featured = 1
+        ORDER BY COALESCE(pr.display_order, 9999) ASC, p.display_order ASC
+      `)
+      .all() as { id: number }[];
+
+    if (existingFeatured.length > 0) {
+      const stmt = db.prepare('UPDATE photos SET featured_order = ? WHERE id = ?');
+      const tx = db.transaction(() => {
+        existingFeatured.forEach((row, idx) => {
+          stmt.run(idx + 1, row.id);
+        });
+      });
+      tx();
+    }
+  }
+  _schemaEnsured = true;
+}
 
 export function closeDb(): void {
   if (_db && _db.open) {
@@ -26,6 +66,7 @@ export function closeDb(): void {
       // ignore
     }
     _db = null;
+    _schemaEnsured = false;
   }
 }
 
@@ -49,6 +90,7 @@ export function getDb(): Database.Database {
     _db = new Database(DB_PATH);
     _db.pragma('journal_mode = WAL');
     _db.pragma('foreign_keys = ON');
+    ensureFeaturedOrderColumn(_db);
     registerCleanup();
   }
   return _db;
@@ -130,7 +172,11 @@ export function getFeaturedPhotos(): Photo[] {
       FROM photos p 
       LEFT JOIN projects pr ON pr.slug = p.project_slug
       WHERE p.is_featured = 1 
-      ORDER BY COALESCE(pr.display_order, 9999), p.display_order
+      ORDER BY 
+        CASE WHEN p.featured_order > 0 THEN 0 ELSE 1 END ASC,
+        p.featured_order ASC,
+        COALESCE(pr.display_order, 9999) ASC,
+        p.display_order ASC
     `)
     .all() as (Omit<Photo, 'is_featured'> & { is_featured: number })[];
 
@@ -293,7 +339,15 @@ export function getProjects(): DbProject[] {
     .all() as { id: number; slug: string; title: string; display_order: number; created_at: string }[];
 
   const featuredRows = db
-    .prepare('SELECT project_slug, file_name FROM photos WHERE is_featured = 1 ORDER BY display_order ASC')
+    .prepare(`
+      SELECT project_slug, file_name
+      FROM photos
+      WHERE is_featured = 1
+      ORDER BY
+        CASE WHEN featured_order > 0 THEN 0 ELSE 1 END ASC,
+        featured_order ASC,
+        display_order ASC
+    `)
     .all() as { project_slug: string; file_name: string }[];
 
   const featuredMap = new Map<string, string[]>();
@@ -473,16 +527,31 @@ export function updateProject(
     }
 
     if (data.featured_images !== undefined) {
-      // Set is_featured = 0 for all photos in this project
-      db.prepare('UPDATE photos SET is_featured = 0 WHERE project_slug = ?').run(slug);
+      const existingRows = db
+        .prepare('SELECT file_name, is_featured, featured_order FROM photos WHERE project_slug = ?')
+        .all(slug) as { file_name: string; is_featured: number; featured_order: number }[];
+      const existingMap = new Map(existingRows.map((r) => [r.file_name, r]));
 
-      // Set is_featured = 1 for the specified files
+      const maxFeaturedRow = db
+        .prepare('SELECT MAX(featured_order) as maxOrder FROM photos WHERE is_featured = 1')
+        .get() as { maxOrder: number | null };
+      let nextFeaturedOrder = (maxFeaturedRow?.maxOrder || 0) + 1;
+
+      // Reset featured flags and order for all photos in this project
+      db.prepare('UPDATE photos SET is_featured = 0, featured_order = 0 WHERE project_slug = ?').run(slug);
+
+      // Set is_featured = 1 and preserve or append featured_order for the specified files
       if (data.featured_images.length > 0) {
         const updateFeatured = db.prepare(
-          'UPDATE photos SET is_featured = 1 WHERE project_slug = ? AND file_name = ?'
+          'UPDATE photos SET is_featured = 1, featured_order = ? WHERE project_slug = ? AND file_name = ?'
         );
         for (const fileName of data.featured_images) {
-          updateFeatured.run(slug, fileName);
+          const prev = existingMap.get(fileName);
+          const featuredOrder =
+            prev && prev.is_featured === 1 && prev.featured_order > 0
+              ? prev.featured_order
+              : nextFeaturedOrder++;
+          updateFeatured.run(featuredOrder, slug, fileName);
         }
       }
     }
@@ -544,17 +613,32 @@ export function addPhoto(data: {
 
   // Insert or update photo if file already exists in this project
   const existing = db
-    .prepare('SELECT id FROM photos WHERE project_slug = ? AND file_name = ?')
-    .get(data.project_slug, data.file_name) as { id: number } | undefined;
+    .prepare('SELECT id, is_featured, featured_order FROM photos WHERE project_slug = ? AND file_name = ?')
+    .get(data.project_slug, data.file_name) as
+    | { id: number; is_featured: number; featured_order: number }
+    | undefined;
+
+  const getNextFeaturedOrder = (): number => {
+    const maxFeatured = db
+      .prepare('SELECT MAX(featured_order) as maxOrder FROM photos WHERE is_featured = 1')
+      .get() as { maxOrder: number | null };
+    return (maxFeatured?.maxOrder || 0) + 1;
+  };
 
   if (existing) {
+    const featuredOrder = isFeatured
+      ? existing.is_featured === 1 && existing.featured_order > 0
+        ? existing.featured_order
+        : getNextFeaturedOrder()
+      : 0;
+
     db.prepare(
       `
       UPDATE photos 
-      SET title = ?, image_path = ?, is_featured = ?, display_order = ?
+      SET title = ?, image_path = ?, is_featured = ?, display_order = ?, featured_order = ?
       WHERE id = ?
     `
-    ).run(title, data.image_path, isFeatured, order, existing.id);
+    ).run(title, data.image_path, isFeatured, order, featuredOrder, existing.id);
 
     return {
       id: existing.id,
@@ -564,15 +648,26 @@ export function addPhoto(data: {
       image_path: data.image_path,
       is_featured: Boolean(data.is_featured),
       display_order: order,
+      featured_order: featuredOrder,
     };
   }
 
+  const featuredOrder = isFeatured ? getNextFeaturedOrder() : 0;
+
   const stmt = db.prepare(`
-    INSERT INTO photos (project_slug, file_name, title, image_path, is_featured, display_order)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO photos (project_slug, file_name, title, image_path, is_featured, display_order, featured_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const info = stmt.run(data.project_slug, data.file_name, title, data.image_path, isFeatured, order);
+  const info = stmt.run(
+    data.project_slug,
+    data.file_name,
+    title,
+    data.image_path,
+    isFeatured,
+    order,
+    featuredOrder
+  );
 
   return {
     id: Number(info.lastInsertRowid),
@@ -582,6 +677,7 @@ export function addPhoto(data: {
     image_path: data.image_path,
     is_featured: Boolean(data.is_featured),
     display_order: order,
+    featured_order: featuredOrder,
   };
 }
 
@@ -599,10 +695,74 @@ export function setPhotoFeatured(
   is_featured: boolean
 ): boolean {
   const db = getDb();
+  if (!is_featured) {
+    const info = db
+      .prepare('UPDATE photos SET is_featured = 0, featured_order = 0 WHERE project_slug = ? AND file_name = ?')
+      .run(project_slug, file_name);
+    return info.changes > 0;
+  }
+
+  const existing = db
+    .prepare('SELECT is_featured, featured_order FROM photos WHERE project_slug = ? AND file_name = ?')
+    .get(project_slug, file_name) as { is_featured: number; featured_order: number } | undefined;
+
+  if (!existing) return false;
+
+  let featuredOrder = existing.featured_order;
+  if (existing.is_featured !== 1 || featuredOrder <= 0) {
+    const maxFeatured = db
+      .prepare('SELECT MAX(featured_order) as maxOrder FROM photos WHERE is_featured = 1')
+      .get() as { maxOrder: number | null };
+    featuredOrder = (maxFeatured?.maxOrder || 0) + 1;
+  }
+
   const info = db
-    .prepare('UPDATE photos SET is_featured = ? WHERE project_slug = ? AND file_name = ?')
-    .run(is_featured ? 1 : 0, project_slug, file_name);
+    .prepare('UPDATE photos SET is_featured = 1, featured_order = ? WHERE project_slug = ? AND file_name = ?')
+    .run(featuredOrder, project_slug, file_name);
   return info.changes > 0;
+}
+
+export function updateFeaturedOrder(photoIds: number[]): void {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    const currentFeatured = db
+      .prepare(
+        `
+        SELECT id
+        FROM photos
+        WHERE is_featured = 1
+        ORDER BY
+          CASE WHEN featured_order > 0 THEN 0 ELSE 1 END ASC,
+          featured_order ASC,
+          id ASC
+      `
+      )
+      .all() as { id: number }[];
+
+    const featuredSet = new Set(currentFeatured.map((r) => r.id));
+    const seen = new Set<number>();
+    const orderedIds: number[] = [];
+
+    for (const id of photoIds) {
+      if (featuredSet.has(id) && !seen.has(id)) {
+        seen.add(id);
+        orderedIds.push(id);
+      }
+    }
+
+    for (const row of currentFeatured) {
+      if (!seen.has(row.id)) {
+        orderedIds.push(row.id);
+      }
+    }
+
+    const stmt = db.prepare('UPDATE photos SET featured_order = ? WHERE id = ?');
+    orderedIds.forEach((id, idx) => {
+      stmt.run(idx + 1, id);
+    });
+  });
+
+  tx();
 }
 
 export function getProjectImageFilesFromDb(slug: string): string[] {
@@ -617,7 +777,15 @@ export function getProjectFeaturedImagesFromDb(slug: string): string[] {
   const db = getDb();
   const rows = db
     .prepare(
-      'SELECT file_name FROM photos WHERE project_slug = ? AND is_featured = 1 ORDER BY display_order ASC'
+      `
+      SELECT file_name
+      FROM photos
+      WHERE project_slug = ? AND is_featured = 1
+      ORDER BY
+        CASE WHEN featured_order > 0 THEN 0 ELSE 1 END ASC,
+        featured_order ASC,
+        display_order ASC
+    `
     )
     .all(slug) as { file_name: string }[];
   return rows.map((r) => r.file_name);

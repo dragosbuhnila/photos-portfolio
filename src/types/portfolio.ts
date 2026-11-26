@@ -6,6 +6,7 @@ export interface Photo {
   image_path: string;
   is_featured: boolean;
   display_order: number;
+  featured_order?: number;
   project_total?: number;
 }
 

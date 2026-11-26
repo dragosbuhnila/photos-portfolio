@@ -149,11 +149,13 @@ function seed(): void {
 
   // ── Seed photos ──────────────────────────────────────────────────────────
   const insertPhoto = db.prepare(`
-    INSERT INTO photos (project_slug, file_name, title, image_path, is_featured, display_order)
-    VALUES (@project_slug, @file_name, @title, @image_path, @is_featured, @display_order)
+    INSERT INTO photos (project_slug, file_name, title, image_path, is_featured, display_order, featured_order)
+    VALUES (@project_slug, @file_name, @title, @image_path, @is_featured, @display_order, @featured_order)
   `);
 
   const seedPhotos = db.transaction(() => {
+    let nextFeaturedOrder = 1;
+
     for (const project of content.projects) {
       const projectDir = path.join(PROJECTS_DIR, project.slug);
 
@@ -172,6 +174,7 @@ function seed(): void {
       files.forEach((fileName, index) => {
         const imagePath = `/my_projects/${project.slug}/${fileName}`;
         const isFeatured = project.featured_images.includes(fileName) ? 1 : 0;
+        const featuredOrder = isFeatured ? nextFeaturedOrder++ : 0;
 
         // Determine specific number/ID in collection:
         // 1. Explicit in content.json photos_order map
@@ -195,6 +198,7 @@ function seed(): void {
           image_path: imagePath,
           is_featured: isFeatured,
           display_order: order,
+          featured_order: featuredOrder,
         });
       });
 
