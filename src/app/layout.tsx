@@ -4,6 +4,8 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { getSiteContent } from '@/lib/content';
 
+export const dynamic = process.env.STATIC_EXPORT === 'true' ? 'auto' : 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   const content = getSiteContent();
   return {

@@ -1,8 +1,7 @@
 import { getFeaturedPhotos } from '@/lib/db';
 import HorizontalCanvas from '@/components/canvas/HorizontalCanvas';
 
-// Force dynamic rendering so the DB is queried at request time
-
+export const dynamic = process.env.STATIC_EXPORT === 'true' ? 'auto' : 'force-dynamic';
 
 export default function HomePage() {
   const featured = getFeaturedPhotos();

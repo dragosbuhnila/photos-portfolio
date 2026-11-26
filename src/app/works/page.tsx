@@ -3,7 +3,7 @@ import PageWrapper from '@/components/layout/PageWrapper';
 import PhotoGrid from '@/components/works/PhotoGrid';
 import type { ProjectGroup } from '@/types/portfolio';
 
-
+export const dynamic = process.env.STATIC_EXPORT === 'true' ? 'auto' : 'force-dynamic';
 
 export default function WorksPage() {
   const photos = getAllPhotos();
