@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev.js",
     "build": "node scripts/build.js",
     "postbuild": "node scripts/clean-db.js",
     "db:clean": "node scripts/clean-db.js",
     "build:static": "node scripts/build-static.js",
-    "start": "next start",
+    "start": "node scripts/dev.js start",
     "migrate": "ts-node --project tsconfig.seed.json db/migrate.ts",
     "seed": "ts-node --project tsconfig.seed.json db/seed.ts",
     "lint": "next lint"
