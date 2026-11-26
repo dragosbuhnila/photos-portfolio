@@ -1,75 +1,96 @@
-# `src/lib/` — Backend Data Layer & Database Services
+# `src/lib/` — Backend Data Layer, Database & Core Utilities
 
-This directory contains the **server-side data access utilities** for the portfolio.
+This directory contains the **server-side data access utilities, database layer, and helper services** for the portfolio.
 
-If you are coming from an Express/Node background, this folder is the equivalent of your `models/` or `services/` directory.
+If you are coming from an Express/Node background, this folder is the equivalent of your `models/` and `services/` directory.
 
 ---
 
 ## 1. What Happens Here
 
 This directory manages the core services and data sources that power the application:
-1. **The SQLite Database (`db.ts`):** Complete read-write query and mutation layer against `db/portfolio.db` via `better-sqlite3`.
-2. **The Content Proxy (`content.ts`):** High-level helper providing typed site metadata (`getSiteContent()`) sourced directly from SQLite.
-3. **The Admin Filesystem Layer (`admin.ts`):** Server-side filesystem operations (image saves, deletions, directory management) and future authentication gatekeeper.
-4. **Shared Validation (`validation.ts`):** Isomorphic validation functions for URLs, emails, slugs, 4-digit years, and form constraints. Runs in both browser and Node.js environments.
+1. **The SQLite Database ([`db.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/db.ts)):** Complete read-write query, mutation, WAL checkpointing, and backup extraction layer against `db/portfolio.db` via `better-sqlite3`.
+2. **Subpath Asset Resolver ([`assets.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/assets.ts)):** Pure helper that prefixes image paths with `NEXT_PUBLIC_BASE_PATH` when deployed to repository subpaths (e.g. GitHub Pages).
+3. **Zero-Dependency Backup Archiver ([`zip.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/zip.ts)):** In-memory PKZIP 2.0 generator using Node's built-in `zlib` and IEEE 802.3 CRC-32 calculation.
+4. **The Admin Filesystem Layer ([`admin.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/admin.ts)):** Server-side disk file manager for images (`public/my_projects/<slug>/`).
+5. **The Content Proxy ([`content.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/content.ts)):** High-level helper providing typed site metadata (`getSiteContent()`) sourced from SQLite.
+6. **Shared Validation ([`validation.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/validation.ts)):** Isomorphic validation functions for URLs, emails, slugs, 4-digit years, and constraints. Runs safely in both browser and Node.js environments.
 
 ---
 
 ## 2. File Breakdown
 
-### [`db.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/db.ts) (SQLite Data Access & Mutations)
-- **Engine:** Uses `better-sqlite3` (a synchronous, high-performance SQLite driver).
-- **Read-Write Singleton:** Connects in read-write mode with Write-Ahead Logging (`WAL` mode) and foreign keys enabled.
-- **Exported Public Queries:**
-  - `getFeaturedPhotos()`: Retrieves photos flagged with `is_featured = 1` for the landing canvas, ordered by project sequence and photo order.
-  - `getAllPhotos()`: Retrieves every photo across all projects for the `/works` archive.
-  - `getPhotosByProject(slug)`: Retrieves all photos for a single project collection.
-  - `getResumeEntries()`: Retrieves structured career history for `/about`.
-  - `getOwnerInfo()`, `getSocialLinks()`, `getNavLinks()`: Retrieves profile information, external links, and header navigation.
-  - `getSiteContent()`: Returns the complete consolidated `ContentData` model.
-- **Exported Admin Mutations:**
-  - `createProject(slug, title)`: Inserts a new project into the `projects` table with automatic display order.
-  - `updateProject(slug, { title, featured_images })`: Updates project title and synchronizes `is_featured` flags.
-  - `updateProjectOrder(slugs)`: Atomically updates project priority order.
-  - `deleteProject(slug)`: Cascades deletion across project and photo records.
-  - `addPhoto(data)`: Inserts or updates an image record in the `photos` table.
-  - `deletePhoto(project_slug, file_name)`: Removes photo record from SQLite.
-  - `setPhotoFeatured(project_slug, file_name, is_featured)`: Toggles featured status.
+### [`db.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/db.ts) (SQLite Data Access, Mutations & Backups)
+- **Engine:** `better-sqlite3` executing synchronously with Write-Ahead Logging (`WAL` mode) and foreign keys enabled.
+- **Connection & Checkpointing:**
+  - `getDb()`: Lazy-initialized singleton connection with automatic process cleanup handlers (`exit`, `SIGINT`, `SIGTERM`).
+  - `closeDb()`: Executes `wal_checkpoint(TRUNCATE)` and closes the active connection cleanly.
+  - `checkpointDb()`: Merges all pending Write-Ahead Log frames into `portfolio.db` and truncates the WAL to zero bytes without closing the connection.
+  - `getDatabaseBackupBuffer()`: Checkpoints WAL and returns the raw SQLite database file buffer.
+  - `getFullBackupZipBuffer()`: Checkpoints WAL and returns a binary ZIP buffer containing `db/portfolio.db` and the entire `public/` directory.
+- **Public Queries:**
+  - `getFeaturedPhotos()`: Retrieves photos with `is_featured = 1`, enriched with `project_total` counts and resolved asset paths.
+  - `getAllPhotos()`: Retrieves all photos across all projects with resolved asset paths.
+  - `getPhotosByProject(slug)`: Retrieves all photos for a specific project.
+  - `getResumeEntries()`: Retrieves career history ordered by section and display order.
+  - `getOwnerInfo()`, `getSocialLinks()`, `getNavLinks()`: Site configuration and metadata.
+  - `getProjects()`: Retrieves all project records with their featured image filenames.
+  - `getAdminProjects(getDiskImages?)`: Enriches projects with current physical filenames on disk.
+  - `getSiteContent()`: Consolidated `ContentData` model.
+- **Admin Mutations:**
   - `updateOwnerInfo(owner)`, `updateSocialLinks(links)`, `updateResumeEntries(entries)`, `updateSiteContent(data)`.
+  - `createProject(slug, title)`: Inserts new project record with automatic sequential display ordering.
+  - `updateProject(slug, data)`: Synchronizes title and `is_featured` flags.
+  - `updateProjectOrder(slugs)`: Atomically updates project ordering sequence in a single transaction.
+  - `deleteProject(slug)`: Cascades deletion across project and photo records.
+  - `addPhoto(data)`: Inserts or updates an image record with automatic order assignment.
+  - `deletePhoto(project_slug, file_name)`: Removes photo record.
+  - `setPhotoFeatured(project_slug, file_name, is_featured)`: Toggles landing canvas featured flag.
 
-### [`content.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/content.ts) (Content Adaptor)
-- **Engine:** Proxies calls to `getSiteContent()` in `db.ts`.
-- **Purpose:** Preserves backward-compatible imports for server pages and API routes without reading disk JSON files at runtime.
+### [`assets.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/assets.ts) (Asset Path Resolver)
+- **Engine:** Pure TypeScript.
+- **Exported Function:**
+  - `getAssetPath(path)`: Checks if a path is absolute, external (`http://`, `https://`), or a data/blob URI. If relative and `NEXT_PUBLIC_BASE_PATH` is defined, prepends the base path prefix so assets resolve accurately on GitHub Pages subpaths.
 
-### [`admin.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/admin.ts) (Admin Filesystem Manager)
-- **Engine:** Uses Node.js `fs` and `path`.
+### [`zip.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/zip.ts) (Zero-Dependency ZIP Archiver)
+- **Engine:** Node.js built-in `zlib` and `Buffer`.
+- **Exported Functions:**
+  - `computeCrc32(buf)`: Standard IEEE 802.3 32-bit CRC checksum calculation using a precomputed 256-entry lookup table.
+  - `createZipBuffer(entries: ZipEntry[])`: Constructs a valid PKZIP 2.0 archive in-memory, writing Local File Headers, raw Deflate payloads, Central Directory records, and End of Central Directory (EOCD).
+  - `collectDirectoryFiles(dirPath, relativePrefix)`: Recursively scans a filesystem folder and returns an array of `{ name, data }` entries ready for archiving.
+
+### [`admin.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/admin.ts) (Filesystem Operations)
+- **Engine:** Node.js `fs` and `path`.
 - **Server Only:** Never imported into client components.
 - **Exported Functions:**
-  - `requireAuth()`: Centralized placeholder for future auth middleware / session validation.
-  - `getProjectImageFiles(slug)`: Inspects `public/my_projects/<slug>/` and returns actual image filenames from disk.
-  - `saveProjectImage(slug, fileName, buffer)`: Writes uploaded image bytes into the project folder.
-  - `deleteProjectImage(slug, fileName)`: Removes single image file from disk.
-  - `ensureProjectDir(slug)` & `deleteProjectDir(slug)`: Manages project folder lifecycle on disk.
+  - `getProjectImageFiles(slug)`: Lists valid image files (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`, `.gif`) in `public/my_projects/<slug>/`.
+  - `ensureProjectDir(slug)`: Creates project directory if missing.
+  - `deleteProjectDir(slug)`: Recursively deletes project folder and all contained images.
+  - `deleteProjectImage(slug, fileName)`: Deletes a specific photo file from disk.
+  - `saveProjectImage(slug, fileName, buffer)`: Writes an uploaded image buffer to disk.
+
+### [`content.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/content.ts) (Content Adaptor)
+- **Exported Function:**
+  - `getSiteContent()`: Proxies calls to `getSiteContentFromDb()` in `db.ts` to provide typed site metadata.
 
 ### [`validation.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/validation.ts) (Isomorphic Validators)
-- **Engine:** Zero external dependencies; no Node.js built-ins.
-- **Browser & Node Safe:** Imported by React client forms and Next.js route handlers.
+- **Engine:** Pure JavaScript/TypeScript with zero external dependencies.
+- **Browser & Server Safe:** Shared between React forms and Next.js route handlers.
 - **Exported Functions:**
-  - `isValidEmail(val)`, `isValidUrl(val)`, `isValidSlug(val)`, `isValidYear(val)`, `isValidPeriod(val)`.
-  - `validateOwner(data)`: Validates name presence, email syntax, and 4-digit copyright year.
+  - `isValidEmail`, `isValidUrl`, `isValidSlug`, `isValidYear`, `isValidPeriod`, `isNonEmpty`.
+  - `validateOwner(data)`: Validates photographer name, email syntax, and 4-digit copyright year.
   - `validateSocialLink(data)`: Validates label presence and URL syntax.
-  - `validateResumeEntry(data)`: Validates section category, role, organization, and period.
-  - `validateProject(data, existingSlugs)`: Validates project title, slug syntax, and uniqueness.
-  - `toSlug(str)`: Generates clean lowercase URL slugs from strings.
+  - `validateResumeEntry(data)`: Validates category, title, organization, and date period.
+  - `validateProject(data, existingSlugs)`: Validates title, slug syntax, and uniqueness.
+  - `toSlug(str)`: Generates clean lowercase URL slugs.
 
 ---
 
 ## 3. Crucial Fullstack Rule: Server-Only Execution
 
-Because `db.ts` uses native Node.js C++ bindings (`better-sqlite3`), **it can only execute in a Node.js server environment**.
+Because `db.ts`, `zip.ts`, and `admin.ts` rely on native Node.js C++ bindings (`better-sqlite3`) and Node built-ins (`fs`, `path`, `zlib`), **they can only execute in a Node.js server environment**.
 
-```
+```text
               Where Can You Import @/lib/db?
                             |
          +------------------+------------------+
@@ -78,11 +99,11 @@ Because `db.ts` uses native Node.js C++ bindings (`better-sqlite3`), **it can on
   - src/app/page.tsx (Server Component)  - src/components/canvas/HorizontalCanvas.tsx
   - src/app/works/page.tsx               - src/components/works/Lightbox.tsx
   - src/app/about/page.tsx               - Any file starting with 'use client'
-  - src/app/api/* (Route Handlers)       - Webpack will throw a compile error!
+  - src/app/api/* (Route Handlers)       - Webpack/Turbopack will throw a compile error!
   - src/app/layout.tsx
 ```
 
 If an interactive Client Component needs data from SQLite:
 1. The parent Server Component in `src/app/` calls `@/lib/db`.
-2. The Server Component passes the resulting data down as props to the Client Component.
-3. Or, the Client Component calls `fetch('/api/photos')`.
+2. The Server Component passes the resulting data down as serializable props to the Client Component.
+3. Or, the Client Component calls `fetch('/api/admin/...')` to perform mutations.

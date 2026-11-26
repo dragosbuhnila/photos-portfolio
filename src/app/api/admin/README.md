@@ -1,27 +1,24 @@
-# `src/app/api/admin/` — Admin REST Endpoints (Mutation Layer)
+# `src/app/api/admin/` — Admin REST Endpoints (Mutation & Backup Layer)
 
-This directory houses the backend **mutation and asset management endpoints** that power the Content Studio (`/manage`).
+This directory houses the backend **mutation, asset management, and backup endpoints** that power the Content Studio (`/manage`).
 
 ---
 
 ## 1. Request Lifecycle & Architecture
 
-All admin endpoints perform **authoritative in-memory SQLite mutations**:
+All admin endpoints perform **authoritative in-memory SQLite transactions and filesystem updates**:
 
-```
-[ HTTP Request (PUT/POST/DELETE) ]
+```text
+[ HTTP Request (GET/PUT/POST/DELETE) ]
                │
                ▼
-       1. requireAuth()           <-- Security checkpoint (placeholder for session/token verification)
+       1. Validate Payload        <-- Checks input types, URL/email syntax, slugs, and required fields
                │
                ▼
-       2. Validate Payload        <-- Checks input types, URL/email formats, slugs, and required fields
-               │
+       2. Direct DB & Disk Action <-- Executes fast parameterized SQL queries via src/lib/db.ts,
+               │                      manages files via src/lib/admin.ts, or generates zip via src/lib/zip.ts
                ▼
-       3. Direct DB & Disk Action <-- Executes fast parameterized SQL queries via src/lib/db.ts
-               │                      and manages physical files in public/my_projects/<slug>/
-               ▼
-       4. HTTP 200/201 JSON       <-- Returns updated state instantly (< 1ms execution)
+       3. HTTP Response           <-- Returns JSON or binary stream (< 1ms execution)
 ```
 
 Every endpoint enforces `export const dynamic = 'force-dynamic'` to prevent route caching.
@@ -69,6 +66,13 @@ Every endpoint enforces `export const dynamic = 'force-dynamic'` to prevent rout
 - **File:** [`projects/reorder/route.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/api/admin/projects/reorder/route.ts)
 - **PUT:** Accepts an ordered array of project slugs `{ slugs: string[] }`:
   - Updates the `display_order` column for each project in SQLite in a single transaction.
+
+### 6. `GET /api/admin/backup`
+- **File:** [`backup/route.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/api/admin/backup/route.ts)
+- **GET:** Generates and downloads a complete portfolio snapshot archive:
+  - Executes `wal_checkpoint(TRUNCATE)` on SQLite to merge and truncate WAL logs.
+  - Bundles the updated `db/portfolio.db` and all folders in `public/` into a standard PKZIP 2.0 buffer via [`src/lib/zip.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/zip.ts).
+  - Streams the archive with `Content-Type: application/zip` and `Content-Disposition: attachment; filename="portfolio-backup-<timestamp>.zip"`.
 
 ---
 

@@ -41,5 +41,6 @@ Returns a JSON array of `ResumeEntry` objects ordered by section and display ord
 
 ## Implementation Highlights
 
-- Calls `getResumeEntries()` from `src/lib/db.ts`.
+- **Dynamic Execution:** Configured with `export const dynamic = 'force-dynamic'` for fresh execution.
+- **Data Source:** Calls `getResumeEntries()` from [`src/lib/db.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/db.ts).
 - Useful for external portfolio widgets, resume exports, or headless integrations.

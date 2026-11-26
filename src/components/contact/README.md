@@ -16,10 +16,10 @@ Implements a minimalist darkroom contact interface:
 ## File Breakdown
 
 - [`ContactContent.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/components/contact/ContactContent.tsx) (`'use client'`):
-  - **Props:** Receives `owner` and `socialLinks` passed down from `src/app/contact/page.tsx`.
-  - **Clipboard API:** Uses `navigator.clipboard.writeText()` with a fallback for older browsers.
-  - **State Management:** Uses `useState<boolean>` to track the copied state.
-  - **Timer Cleanup:** Sets a 2-second timeout to reset the copied state, properly cleaning up with `useEffect` or timeout cancellation to avoid memory leaks.
+  - **Props:** Receives `owner` and `socialLinks` passed down from [`src/app/contact/page.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/contact/page.tsx).
+  - **Clipboard API:** Uses `navigator.clipboard.writeText()` with a fallback for older browser environments.
+  - **State Management:** Uses `useState<boolean>` to track the temporary "Copied!" indication.
+  - **Timer Cleanup:** Sets a 2-second timeout to reset the copied state, properly cleaning up timers on unmount to prevent memory leaks.
 
 ---
 
@@ -30,4 +30,4 @@ Implements a minimalist darkroom contact interface:
 2. It calls browser-only APIs (`navigator.clipboard`).
 3. It handles DOM event clicks (`onClick`).
 
-The data itself originates from SQLite and is read by the parent Server Component (`src/app/contact/page.tsx`), which then passes it down as static props.
+The data itself originates from SQLite and is read by the parent Server Component ([`src/app/contact/page.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/contact/page.tsx)), which passes it down as serialized props.

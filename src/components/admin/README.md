@@ -1,6 +1,6 @@
 # `src/components/admin/` — Content Studio UI Components
 
-This directory contains the reusable UI controls and layout components that power the in-browser Content Studio (`/manage`).
+This directory contains the reusable UI controls and navigation components that power the in-browser Content Studio (`/manage`).
 
 ---
 
@@ -32,7 +32,12 @@ A TypeScript generic (`<T>`) interactive list component that allows the user to 
 The left navigation panel for the Content Studio.
 - **Active Route Detection:** Uses Next.js `usePathname()` to highlight the active section with a vertical border indicator (`border-l-2 border-text-bright`).
 - **Responsive Layout:** Displays as a left sidebar on desktop (`w-64`) and converts to a scrollable top bar on mobile devices.
-- **Nav Links:** Profile (`/manage`), Projects (`/manage/projects`), Resume (`/manage/resume`), and Social Links (`/manage/social`).
+- **Nav Links:**
+  - **Profile (`/manage`):** Owner details & bio.
+  - **Projects (`/manage/projects`):** Galleries, uploads & featured toggles.
+  - **Resume (`/manage/resume`):** Experience, education & exhibitions.
+  - **Social Links (`/manage/social`):** Handles & outbound links.
+  - **Backup (`/manage/backup`):** Full snapshot packaging (database & photos).
 
 ### 4. [`AdminToast.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/components/admin/AdminToast.tsx) (`'use client'`)
 A minimalist notification toast fixed to the bottom-right of the screen.

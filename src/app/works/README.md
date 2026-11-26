@@ -6,11 +6,11 @@ This folder defines the `/works` route for the portfolio.
 
 ## What Happens Here
 
-This route serves as the complete archive and catalog of all photographic series.
-- Fetches all photos across all projects from the SQLite database.
+This route serves as the complete archive and catalog of all photographic series:
+- Fetches all photos across all projects from the SQLite database via `getAllPhotos()`.
 - Organizes the flat photo records into structured project groups (`ProjectGroup[]`) keyed by `project_slug`.
-- Parses URL search parameters (e.g. `?highlight=12`) to support deep-linking from the landing page.
-- Passes the grouped data into the interactive `<PhotoGrid />` component.
+- Passes the grouped data into the interactive [`<PhotoGrid />`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/components/works/PhotoGrid.tsx) component.
+- Supports client-side deep-linking: navigating with `?highlight=ID` or `#photo-ID` automatically scrolls to the photo and applies a highlight frame.
 
 ---
 
@@ -42,25 +42,10 @@ for (const photo of photos) {
 }
 const groups = Array.from(groupMap.values());
 ```
-This data transformation happens **once on the server** during the request. The client receives clean, structured data ready for rendering.
+This data transformation happens **once on the server** during rendering. The client receives clean, structured data ready for display.
 
-### 2. Deep Linking with Server `searchParams`
-In React Router, you would read URL parameters using `useSearchParams()` or `useLocation()`.
-In Next.js App Router, page components receive query parameters directly via their `props`:
-```tsx
-interface WorksPageProps {
-  searchParams?: {
-    highlight?: string; // e.g. /works?highlight=42
-    project?: string;   // e.g. /works?project=tokyo-nights
-  };
-}
-
-export default function WorksPage({ searchParams }: WorksPageProps) {
-  const initialHighlightId = searchParams?.highlight
-    ? parseInt(searchParams.highlight, 10)
-    : undefined;
-
-  return <PhotoGrid groups={groups} initialHighlightId={initialHighlightId} />;
-}
-```
-When a user clicks a photo on the home page canvas, the router navigates to `/works?highlight=42`. The `WorksPage` reads this ID on the server and passes it down so the `<PhotoGrid>` component can immediately open the fullscreen Lightbox for photo #42.
+### 2. Client-Side Highlighting & Static Export Compatibility
+To maintain full compatibility with both dynamic server rendering and static site exports (`output: 'export'`), deep linking (e.g. clicking a featured image on `/` that navigates to `/works?highlight=42`):
+- Is handled inside the client component [`PhotoGrid.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/components/works/PhotoGrid.tsx) using `window.location.search`.
+- Detects the target photo ID, scrolls it smoothly into the center of the viewport, and highlights it with an outline frame.
+- Avoids blocking static export prerendering because the server component does not rely on dynamic request-time search parameters.

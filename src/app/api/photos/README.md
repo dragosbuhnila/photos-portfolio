@@ -40,12 +40,12 @@ Host: localhost:3000
   {
     "id": 1,
     "project_slug": "urban-geometry",
-    "file_name": "01.jpg",
+    "file_name": "bike_and_stairs.jpg",
     "title": "Urban Geometry",
-    "image_path": "/my_projects/urban-geometry/01.jpg",
-    "is_featured": 1,
+    "image_path": "/my_projects/urban-geometry/bike_and_stairs.jpg",
+    "is_featured": true,
     "display_order": 1,
-    "project_total": 9
+    "project_total": 4
   }
 ]
 ```
@@ -55,4 +55,5 @@ Host: localhost:3000
 ## Implementation Highlights
 
 - **Dynamic Execution:** Configured with `export const dynamic = 'force-dynamic'` so queries reflect real-time database updates without build caching.
-- **Data Source:** Calls `getFeaturedPhotos()` or `getAllPhotos()` from `src/lib/db.ts`, which queries SQLite using `better-sqlite3`.
+- **Base Path Resolution:** Image paths returned by `getFeaturedPhotos()` and `getAllPhotos()` automatically pass through `getAssetPath()` to support base path prefixes for subpath deployments.
+- **Data Source:** Synchronously queries SQLite using `better-sqlite3` via [`src/lib/db.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/lib/db.ts).

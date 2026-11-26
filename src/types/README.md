@@ -1,19 +1,19 @@
 # `src/types/` — TypeScript Contracts & Domain Models
 
-This folder contains the **TypeScript interfaces and type declarations** used throughout the portfolio.
+This folder contains the **TypeScript interfaces, domain contracts, and type declarations** used throughout the portfolio.
 
 ---
 
 ## 1. The Fullstack Advantage: End-to-End Type Safety
 
-In a separated React + Express architecture, type definitions are often duplicated:
+In a separated React + Express architecture, type definitions are frequently duplicated:
 - A `types.ts` in the Express backend defining database rows.
 - A `types.ts` in the React frontend defining API responses.
 - If a field is renamed on the backend, the frontend breaks silently until runtime.
 
 In Next.js fullstack, **both backend and frontend share the exact same type contracts**:
 
-```
+```text
                          src/types/portfolio.ts
                                    |
         +--------------------------+--------------------------+
@@ -23,7 +23,7 @@ In Next.js fullstack, **both backend and frontend share the exact same type cont
    (SQLite query)            (NextResponse)             (PhotoGrid props)
 ```
 
-If you rename `project_slug` to `project_id`, running `npx tsc` will instantly report every line of backend SQL mapping, API serialization, and React JSX that needs attention across the entire stack.
+If you change a field in `portfolio.ts`, running `npx tsc` will instantly report every line of backend SQL mapping, API serialization, and React JSX that requires attention across the entire codebase.
 
 ---
 
@@ -31,11 +31,27 @@ If you rename `project_slug` to `project_id`, running `npx tsc` will instantly r
 
 ### [`portfolio.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/types/portfolio.ts)
 Defines the core domain models:
-- **`Photo`:** Matches the SQLite `photos` table schema (`id`, `project_slug`, `file_name`, `title`, `image_path`, `is_featured`, `display_order`, `project_total`).
-- **`ResumeEntry`:** Matches career history stored in SQLite (`id?: number`, `section`, `title`, `organization`, `period`, `display_order`).
-- **`ProjectGroup`:** Grouped photo collection used to render project clusters on the `/works` page.
-- **`OwnerInfo` & `SocialLink` & `NavLink`:** Matches photographer metadata and navigation stored in SQLite (`site_settings` & `social_links`).
-- **`ContentData`:** The complete validated schema representing the consolidated website metadata model.
+- **`Photo`:** Matches the SQLite `photos` table schema:
+  - `id`: Unique identifier (`INTEGER`).
+  - `project_slug`: Foreign key matching `projects.slug`.
+  - `file_name`: Image filename on disk (e.g. `dome.jpg`).
+  - `title`: Display title or project series name (`string | null`).
+  - `image_path`: Resolved web path (e.g. `/my_projects/urban-geometry/dome.jpg`).
+  - `is_featured`: Boolean flag governing appearance on the landing page canvas.
+  - `display_order`: Numerical sequence order within the project.
+  - `project_total?`: Optional total count of images in this project collection.
+- **`ResumeEntry`:** Matches career history stored in SQLite:
+  - `id?`: Unique identifier.
+  - `section`: Category name (`experience`, `education`, `exhibition`).
+  - `title`: Position, degree, or exhibition title.
+  - `organization`: Company, institution, or gallery.
+  - `period`: Date range or year string.
+  - `display_order`: Numerical sequence order within the section.
+- **`ProjectGroup`:** Grouped photo collection used to render project clusters on the `/works` page (`slug`, `title`, `photos: Photo[]`).
+- **`OwnerInfo`:** Photographer details stored in `site_settings` (`name`, `email`, `location`, `available_for_travel?`, `copyright_year?`, `bio: string[]`).
+- **`SocialLink`:** Outbound profiles stored in `social_links` (`id?`, `label`, `handle?`, `url`).
+- **`NavLink`:** Header navigation links (`label`, `href`).
+- **`ContentData`:** Consolidated schema representing site metadata, owner, social links, navigation, projects, and resume entries.
 
 ### [`styles.d.ts`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/types/styles.d.ts)
 - Ambient TypeScript module declaration enabling type checking for CSS module imports.

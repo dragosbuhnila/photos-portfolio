@@ -1,14 +1,14 @@
 # `src/app/manage/` — Content Studio (Portfolio Management)
 
-This directory implements the in-browser **Content Studio** where the website owner manages all knowledge and assets.
+This directory implements the in-browser **Content Studio** where the website owner manages all portfolio content, images, resume records, and backups.
 
 ---
 
 ## 1. Architecture & Mental Model
 
-In traditional headless CMS setups, the backend admin lives on a third-party service (e.g. Sanity, Strapi, Contentful). In this portfolio, the management interface is **embedded natively into the application**:
+In traditional headless CMS setups, the backend admin lives on a third-party hosted service (e.g. Sanity, Strapi, Contentful). In this portfolio, the management interface is **embedded natively into the local application**:
 
-```
+```text
 [ Browser: /manage/* ]  <--- Fetch JSON & Multipart --->  [ API Handlers: /api/admin/* ]
          |                                                               |
          |                                                +--------------+---------------+
@@ -32,6 +32,7 @@ In traditional headless CMS setups, the backend admin lives on a third-party ser
 | `/manage/projects` | [`projects/page.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/manage/projects/page.tsx) | Client (`'use client'`) | **Projects & Galleries:** Create project collections, upload high-res imagery, toggle landing page featured images (`★`), reorder projects, and delete assets. |
 | `/manage/resume` | [`resume/page.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/manage/resume/page.tsx) | Client (`'use client'`) | **Resume & Chronology:** Tabbed management for Experience, Education, and Exhibitions with collision-free priority reordering. |
 | `/manage/social` | [`social/page.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/manage/social/page.tsx) | Client (`'use client'`) | **Social Links:** CRUD and priority ordering for outbound profile links and handles. |
+| `/manage/backup` | [`backup/page.tsx`](file:///c:/Users/Dragos/Roba/Lectures/Software/Websites/photos-portfolio/src/app/manage/backup/page.tsx) | Client (`'use client'`) | **Backup & Archive:** One-click full snapshot that checkpoints SQLite WAL into `portfolio.db` and downloads database + photos as a single `.zip` file. |
 
 ---
 
@@ -46,11 +47,13 @@ Within `/manage/projects`, each image thumbnail has a **`★ Featured`** button.
 ### C. Inline Confirmations
 To adhere to the darkroom aesthetic and avoid jarring browser `window.confirm()` alert dialogs, deletions (projects, photos, resume entries, links) use two-step inline confirmation buttons.
 
+### D. Checkpointed ZIP Backups
+Within `/manage/backup`, clicking **Download Backup** triggers a server-side Write-Ahead Log (`WAL`) checkpoint to ensure all data is consolidated into `portfolio.db`, then streams a complete PKZIP archive containing both the SQLite database and all photo folders in `public/`.
+
 ---
 
-## 4. Authentication Readiness
+## 4. Local CMS & Static Build Lifecycle
 
-This route group is designed for frictionless auth integration:
-- All data mutations pass through `src/app/api/admin/*`, where each route handler invokes `requireAuth()` from `src/lib/admin.ts`.
-- When login is implemented, `requireAuth()` will check session cookies or tokens.
-- Next.js edge middleware can protect the entire `/manage/:path*` route tree in a single rule.
+The Content Studio operates in the **local-first workflow**:
+- **Running Locally:** You curate your content and upload photos in Content Studio while running `npm run dev`. All changes are written directly into local SQLite and filesystem directories.
+- **Publishing:** When deploying statically (e.g. GitHub Pages via `npm run build:static`), the build script isolates `/manage` and `/api` so that private administration endpoints are not exposed to the public static build, and the site header automatically excludes the `Manage` navigation link.
